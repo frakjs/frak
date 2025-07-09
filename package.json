@@ -1,0 +1,28 @@
+{
+  "name": "frak",
+  "version": "0.1.0",
+  "description": "A commandline deployment tool for syncing files to remote servers.",
+  "main": "index.js",
+  "bin": {
+    "frak": "./bin/frak.js"
+  },
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/frakjs/frak.git"
+  },
+  "keywords": [
+    "rsync",
+    "deployment",
+    "ssh"
+  ],
+  "author": "Frank Strube <contact@frakjs.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/frakjs/frak/issues"
+  },
+  "homepage": "https://github.com/frakjs/frak#readme"
+}
