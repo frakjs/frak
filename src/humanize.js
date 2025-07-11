@@ -6,8 +6,8 @@ export default function humanize(changes) {
         .replace(/<f\+\+\+\+\+\+\+\+\+/g,  ansi.green('New File   '))
         .replace(/>f\+\+\+\+\+\+\+\+\+/g,  ansi.green('New File   '))
         .replace(/cd\+\+\+\+\+\+\+\+\+/g,  ansi.green('New Folder '))
-        .replace(/<fcsT\.\.\.\.\.\./g,    ansi.yellow('Changed    '))
-        .replace(/>fcsT\.\.\.\.\.\./g,    ansi.yellow('Changed    '))
-        .replace(/cLc\.T\.\.\.\.\.\./g,   ansi.yellow('Changed    '))
+        .replace(/<fc..\.\.\.\.\.\./g,    ansi.yellow('Update     '))
+        .replace(/>fc..\.\.\.\.\.\./g,    ansi.yellow('Update     '))
+        .replace(/cLc\.T\.\.\.\.\.\./g,   ansi.yellow('Update     '))
         .replace(/\*deleting  /g,            ansi.red('Delete     '))
 }

@@ -74,7 +74,7 @@ export function filters() {
  */
 export function exec(...options) {
     // Get the current command
-    const { command } = parse(process.argv.slice(2));
+    const { command, options: commandOptions } = parse(process.argv.slice(2));
     let source, destination;
 
     // Flip the source and destination if this is a pull command
@@ -88,6 +88,9 @@ export function exec(...options) {
     }
 
     let backup = [];
+    let backupName = 'name' in commandOptions
+        ? `${commandOptions.name}_${(new Date()).toISOString()}`
+        : (new Date()).toISOString();
 
     // Figure out backup options
     backup = [
@@ -96,12 +99,12 @@ export function exec(...options) {
 
     // Keep the same backup path for all rsync commands
     if (backupPath === null) {
-        backupPath = `.backups/${(new Date()).toISOString()}`
+        backupPath = `.backups/${backupName}`
     }
 
     // This should only happen on push
     if (command === 'push') {
-        backup = [...backup, '--backup', `--backup-dir=${backupPath}`]
+        backup = [...backup, '--backup', `--backup-dir='${backupPath}'`]
     }
 
     const args = [
@@ -121,7 +124,7 @@ export function exec(...options) {
     debug(args.flat().join(' '));
     debug('filters:', filters());
 
-    let stdout = '';
+    let output = '';
 
     const rsync = spawn.apply(null, args);
 
@@ -130,7 +133,7 @@ export function exec(...options) {
     echo.stdout.pipe(rsync.stdin);
 
     rsync.stdout.on('data', (data) => {
-        stdout += `${data}`;
+        output += `${data}`;
     });
 
     rsync.stderr.on('data', (data) => {
@@ -140,7 +143,10 @@ export function exec(...options) {
     return new Promise((resolve, reject) => {
         rsync.on('exit', (code) => {
             if (code === 0) {
-                resolve(stdout);
+                resolve({
+                    output,
+                    backupPath,
+                });
             } else {
                 reject(`rsync exited with code ${code}`);
             }

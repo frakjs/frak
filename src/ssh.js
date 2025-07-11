@@ -1,23 +1,33 @@
 import { spawn } from 'node:child_process';
+import debug from './debug.js';
 
-export async function exec(command, options = {}) {
+export function exec(command, options = {}) {
+    debug({ command });
+
     const cmd = `cd ${options.root || '.'}; sh`;
 
     const ssh = spawn('ssh', [ options.server, '--', cmd ]);
 
-    const echo = spawn('echo', [ command ]);
+    // const echo = spawn('echo', [ command ]);
 
-    echo.stdout.pipe(ssh.stdin);
+    // echo.stdout.pipe(ssh.stdin);
+
+    ssh.stdin.write(command);
+    ssh.stdin.end();
 
     ssh.stdout.on('data', (data) => {
-        process.stdout.write(`${data}`);
+        debug('' + data);
+
+        options.quiet || process.stdout.write(`${data}`);
     });
 
     ssh.stderr.on('data', (data) => {
-        process.stderr.write(`${data}`);
+        debug('' + data);
+
+        options.quiet || process.stderr.write(`${data}`);
     });
 
-    return new Promise((resolve, reject) => {
+    const promise = new Promise((resolve, reject) => {
         ssh.on('exit', (code) => {
             if (code === 0) {
                 resolve();
@@ -26,4 +36,9 @@ export async function exec(command, options = {}) {
             }
         });
     });
+
+    promise.stdout = ssh.stdout;
+    promise.stderr = ssh.stderr;
+
+    return promise;
 }
