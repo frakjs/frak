@@ -1,138 +1,214 @@
-# Frak
+<a id="readme-top"></a>
 
-**Frak** is an agentless deployment tool for web apps. Powered by `rsync` over SSH, it tracks file changes, creates patch backups, and supports dry-run diffs, interactive confirmations, and post-deploy hooks.
+<!-- PROJECT SHIELDS -->
+[![Contributors][contributors-shield]][contributors-url]
+[![Forks][forks-shield]][forks-url]
+[![Stargazers][stars-shield]][stars-url]
+[![Issues][issues-shield]][issues-url]
+[![MIT][license-shield]][license-url]
+[![LinkedIn][linkedin-shield]][linkedin-url]
+
+<!-- PROJECT LOGO -->
+<br />
+<div align="center">
+  <a href="https://github.com/frakjs/frak">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-cloud-upload-icon lucide-cloud-upload"><path d="M12 13v8"/><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="m8 17 4-4 4 4"/></svg>
+  </a>
+
+  <h3 align="center">frak</h3>
+
+  <p align="center">
+    Quick deployment tool using Rsync and SSH.
+    <br />
+    <br />
+    <a href="https://github.com/frakjs/frak/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
+    &middot;
+    <a href="https://github.com/frakjs/frak/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
+  </p>
+</div>
+
+<!-- TABLE OF CONTENTS -->
+<details>
+  <summary>Table of Contents</summary>
+  <ol>
+    <li>
+      <a href="#about-the-project">About The Project</a>
+    </li>
+    <li>
+      <a href="#getting-started">Getting Started</a>
+      <ul>
+        <li><a href="#prerequisites">Prerequisites</a></li>
+        <li><a href="#installation">Installation</a></li>
+      </ul>
+    </li>
+    <li><a href="#usage">Usage</a></li>
+    <li><a href="#roadmap">Roadmap</a></li>
+    <li><a href="#contributing">Contributing</a></li>
+    <li><a href="#license">License</a></li>
+    <li><a href="#contact">Contact</a></li>
+    <li><a href="#acknowledgments">Acknowledgments</a></li>
+  </ol>
+</details>
+
+
+
+<!-- ABOUT THE PROJECT -->
+## About The Project
+
+[![Product Name Screen Shot][product-screenshot]](https://frakjs.com)
+
+**`frak`** is an agentless deployment tool for web apps. It leverages `rsync` over SSH to push files to a remote server, and is able to visualize file changes in a developer-friendly way. **`frak`** has a number of advanced features beyond syncing files to a remote server, such as keeping a history of deployments for easy rollback, showing file differences prior to pushing, and post-deploy hooks.
 
 > “Frak it, ship it.”
 
-&nbsp;
+### 🚀 Features
 
-## 🚀 Features
+🔌 **Init once, deploy anytime**<br>
+🔎 **Interactive diffs** before every push/pull<br>
+📦 **Patch-based backups** stored on your server<br>
+🧾 **Post-deploy commands** (e.g. restart services)<br>
+📡 **Quick SSH console access** into deploy root<br>
+🔁 **Pull support** for syncing back changes<br>
+📋 **Backup inspection** with additions/deletions summary
 
-- 🔌 **Init once, deploy anytime**
-- 🔎 **Interactive diffs** before every push/pull
-- 📦 **Patch-based backups** stored on your server
-- 🧾 **Post-deploy commands** (e.g. restart services)
-- 📡 **SSH console access** into deploy root
-- 🔁 **Pull support** for syncing back changes
-- 📋 **Backup inspection** with additions/deletions summary
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-## 📦 Installation
+<!-- GETTING STARTED -->
+## Getting Started
 
-```bash
-npm install -g @frakjs/frak
-```
+Using frak is simple. All you need is a [Node.js](https://nodejs.org) environment with `npx`.
 
-Or run it on-demand with `npx`
+### Prerequisites
 
-```bash
-npx @frakjs/frak <command>
-```
-
-## 🛠️ Setup
+Make sure you have Node.js and `npx` installed.
 
 ```bash
-frak init
+node --version
+npm --version
+npx --version
 ```
 
-This creates a `frak.config.js` file:
+[![Node.js and NPM Screenshot][prerequisites-screenshot]]()
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+<!-- USAGE EXAMPLES -->
+## Usage
+
+The recommended way to run `frak` is via the `npx` command.
+
+```bash
+npx @frakjs/frak --help
+```
+
+If you're prompted to install the package, say _yes_.
+
+```
+Need to install the following packages:
+@frakjs/frak@0.1.0
+Ok to proceed? (y)
+```
+
+**`frak`** needs to be initialized in your project directory with the `init` command.
+
+```bash
+cd project-folder
+npx @frakjs/frak init
+```
+
+[![frak init][frak-init-screenshot]]()
+
+This creates a `frak.config.js` file that looks something like this:
 
 ```js
 export default {
     server: "user@example.com",
     root: "/var/www/html",
-    after: "npm run restart" // optional post-deploy hook
 };
 ```
 
-## 🧩 Commands
+You can replace `server` and `root` with the appropriate values for your environment.
 
-```
-frak init              # Create config file
-frak console           # SSH into the deploy root
-frak diff              # Show dry-run changes
-frak push              # Deploy changes (with confirmation)
-frak pull              # Download changes from remote
-frak backups:list      # List previous patch deployments
-```
-
-## 🔐 Authentication
-
-Frak uses SSH. Make sure your public key is in `~/.ssh/authorized_keys` on the remote server.
-
-## 🧪 Example: Deployment Flow
+With the configuration in place, you can now start <b>`frak`</b>ing files to your server. It's as simple as the basic command without any arguments.
 
 ```bash
-frak diff          # See what will change
-frak push          # Sync files, confirm, deploy
+npx @frakjs/frak
 ```
 
-Behind the scenes:
+The results of the command will show you a dry-run preview of the changes that will be synced to the remote server. You will be prompted before it proceeds with the actual file transfer.
 
-- Files are compared with a dry-run rsync
-- If approved, a patch file is generated and saved
-- Files are synced live
-- Optional after script is run remotely
-
-## 💾 Backups
-
-Each deployment saves a `.patch` file on the server under `.backups/`. You can list them with:
+If you'd like, you can cancel the sync by typing "no" or any non-"yes" value. Perhaps you want to see the changes line-by-line. **`frak`** can do this too!
 
 ```bash
-frak backups:list
+npx @frakjs/frak diff
 ```
 
-Output shows:
+The command above will compare all the changes, and present a colorful git-style patch that you can inspect in your terminal.
 
-- Timestamp
-- Filename
-- Additions and deletions in the patch
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-## 🧠 Design Philosophy
+<!-- ROADMAP -->
+## Roadmap
 
-- Minimal dependencies
-- Pure CLI
-- Patch-based history
-- No Docker or Node on server
-- Human-friendly
+- [ ] Send an alert via Slack after push events
+- [ ] Parallel deployments to multiple environments at once
 
-## 🧰 Advanced Config (optional)
+See the [open issues](https://github.com/frakjs/frak/issues) for a full list of proposed features (and known issues).
 
-```js
-export default {
-    server: 'user@host',
-    root: '/srv/www',
-    after: 'sudo systemctl reload nginx',
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-    dev: {
-        root: '/srv/www-dev',
-    },
+<!-- CONTRIBUTING -->
+## Contributing
 
-    production: {
-        root: '/srv/www-prod',
-    },
-};
-```
+Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
-```bash
-frak push                   # uses default root-level properties
-frak push env=dev           # uses properties in "dev" to override
-frak push env=production    # uses properties in "production" to override
-```
+If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
+Don't forget to give the project a star! Thanks again!
 
-## 🐛 Debugging
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-Enable debug output by setting `DEBUG=1`:
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-```bash
-DEBUG=1 frak push
-```
+### Top contributors:
 
-## 📄 License
+<a href="https://github.com/frakjs/frak/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=frakjs/frak" alt="contrib.rocks image" />
+</a>
 
-MIT
+<!-- LICENSE -->
+## License
 
-## 🧑‍💻 Author
+Distributed under the MIT License. See `LICENSE.txt` for more information.
 
-Built by [Frank Strube](https://github.com/fstrube)
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-Contributions and suggestions welcome!
+<!-- CONTACT -->
+## Contact
+
+Your Name - [@strube](https://twitter.com/strube) - contact@frakjs.com
+
+Project Link: [https://github.com/frakjs/frak](https://github.com/frakjs/frak)
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+<!-- MARKDOWN LINKS & IMAGES -->
+<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
+[contributors-shield]: https://img.shields.io/github/contributors/frakjs/frak.svg?style=for-the-badge
+[contributors-url]: https://github.com/frakjs/frak/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/frakjs/frak.svg?style=for-the-badge
+[forks-url]: https://github.com/frakjs/frak/network/members
+[stars-shield]: https://img.shields.io/github/stars/frakjs/frak.svg?style=for-the-badge
+[stars-url]: https://github.com/frakjs/frak/stargazers
+[issues-shield]: https://img.shields.io/github/issues/frakjs/frak.svg?style=for-the-badge
+[issues-url]: https://github.com/frakjs/frak/issues
+[license-shield]: https://img.shields.io/github/license/frakjs/frak.svg?style=for-the-badge
+[license-url]: https://github.com/frakjs/frak/blob/master/LICENSE.txt
+[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
+[linkedin-url]: https://linkedin.com/in/linkedin_username
+[product-screenshot]: images/screenshot.png
+[prerequisites-screenshot]: images/node-npm-version.png
+[frak-init-screenshot]: images/frak-init-screenshot.png
