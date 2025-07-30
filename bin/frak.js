@@ -18,6 +18,37 @@ import * as date from '../src/date.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /**
+ * Try to load config. If it fails, print error message in red.
+ *
+ * @param {String} env
+ */
+async function tryLoadConfig(env) {
+    try {
+        await loadConfig(env);
+    } catch (e) {
+        console.log(ansi.red(e.message));
+
+        process.exit(1);
+    }
+
+    return;
+}
+
+/**
+ * Print command usage instructions.
+ */
+function usage() {
+    console.log('Usage: frak <command>');
+    console.log('Commands:');
+    console.log('  init          Initialize the current directory for frak deployment');
+    console.log('  console       Connect to the remote server via SSH');
+    console.log('  diff          Show differences between local and remote files');
+    console.log('  pull          Download the remote file(s)');
+    console.log('  push          Deploy website via rsync');
+    console.log('  backups:list  List backups on the server');
+}
+
+/**
  * Execute the command.
  *
  * @param {Array} args
@@ -42,7 +73,7 @@ async function main(args) {
     // Start a console session, or run the provided command on
     // the remote server.
     } else if (command === 'console') {
-        await loadConfig(options.env);
+        await tryLoadConfig(options.env);
 
         if (!config.server) {
             console.error('No remote server configured. Add "server" to frak.config.js');
@@ -58,7 +89,7 @@ async function main(args) {
         }
     // Show the differences between local files and remote server
     } else if (command === 'diff') {
-        await loadConfig(options.env);
+        await tryLoadConfig(options.env);
 
         const { output } = await rsync.exec('--dry-run');
 
@@ -66,7 +97,7 @@ async function main(args) {
 
     // Push or pull changes to remote server
     } else if (command === 'push' || command === 'pull') {
-        await loadConfig(options.env);
+        await tryLoadConfig(options.env);
 
         // Execute dry-run
         const { output } = await rsync.exec('--dry-run');
@@ -127,14 +158,14 @@ async function main(args) {
             console.log(ansi.green('Deployment complete.'));
         }
     } else if (command === 'backups:list') {
-        await loadConfig(options.env);
+        await tryLoadConfig(options.env);
 
         const delimeter = '------Separator--';
         const grep = {
             additions: `grep -e '^+' "$NAME"/*.patch | grep -v '^+++' | wc -l`,
             deletions: `grep -e '^-' "$NAME"/*.patch | grep -v '^---' | wc -l`,
         }
-        const ls = `stat --format='%Y %n' .backups/* | sort -r`
+        const ls = `stat --format='%Y %n' .backups/* | sort -r`;
 
         const list = ssh.exec(`${ls} | xargs -I {} sh -c 'TIMESTAMP=$(echo {} | cut -d" " -f1); NAME=$(echo {} | cut -d" " -f2-); echo $TIMESTAMP${delimeter}$NAME${delimeter}$(${grep.additions})${delimeter}$(${grep.deletions})'`, { quiet: true, server: config.server, root: config.root });
         let backups = '';
@@ -168,18 +199,8 @@ async function main(args) {
         });
 
         table.print();
-    } else if (command === 'backups:purge') {
-        console.log('Purging backups...');
     } else {
-        console.log('Usage: frak <command>');
-        console.log('Commands:');
-        console.log('  init          Initialize the current directory for frak deployment');
-        console.log('  console       Connect to the remote server via SSH');
-        console.log('  diff          Show differences between local and remote files');
-        console.log('  pull          Download the remote file(s)');
-        console.log('  push          Deploy website via rsync');
-        console.log('  backups:list  List backups on the server');
-        console.log('  backups:purge Purge all backups');
+        usage();
 
         if (command !== '--help') {
             process.exit(1);

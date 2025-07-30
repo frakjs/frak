@@ -11,7 +11,7 @@ let config = {};
  * @returns {String}
  */
 export function locate() {
-    for (let dir = process.cwd(); dir; dir = path.dirname(dir)) {
+    for (let dir = process.cwd(); dir != '/'; dir = path.dirname(dir)) {
         const configPath = path.join(dir, 'frak.config.js');
 
         if (fs.existsSync(configPath)) {
@@ -38,13 +38,13 @@ export async function load(env = null) {
         }
 
         if (env) {
-            throw new RuntimeError(`Missing configuration for environment "${env}"!`);
+            throw new Error(`Missing configuration for environment "${env}"!`);
         }
 
         return config;
     }
 
-    throw new RuntimeError('Config file not found!');
+    throw new Error('Config file not found! Try running frak init.');
 }
 
 export default config;
