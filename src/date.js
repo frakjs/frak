@@ -32,6 +32,7 @@ export function relative(date) {
     // Less than a minute
     } else if (seconds < 60) {
         value = Math.floor(seconds);
+        unit = plural('second', value);
     // Less than an hour
     } else if (seconds < 60 * 60) {
         value = Math.floor(seconds / 60);
@@ -51,7 +52,7 @@ export function relative(date) {
     // Less than a year
     } else if (seconds < 60 * 60 * 24 * 365) {
         value = Math.floor(seconds / 60 / 60 / 24 / 30);
-        unit = plural('week', value);
+        unit = plural('month', value);
     } else {
         return `${months[datetime.getMonth()]} ${datetime.getDay()}, ${datetime.getFullYear()} @ ${datetime.getHours() % 12}:${`0${datetime.getMinutes()}`.slice(-2)} ${datetime.getHours() >= 12 ? 'pm' : 'am'}`;
     }
