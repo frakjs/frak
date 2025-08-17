@@ -28,7 +28,7 @@ export function parse(args) {
 export async function agree(string) {
     process.stdout.write(string);
 
-    const answer = await new Promise((resolve, reject) => {
+    const answer = await new Promise((resolve) => {
         process.stdin.on('data', data => resolve(data));
     });
 
@@ -67,7 +67,6 @@ export class Table {
                 const width = ansi.strip(cell).length
                 const padding = Math.max(0, this.columns[i].width - width - 2);
                 const paddingString = (new Array(padding + 1)).join(' ');
-                const borderString = (new Array(this.columns[i].width + 1).join('-'));
 
                 return `${row || ''}${ansi.gray('|')} ${cell}${paddingString} ${i === r.length - 1 ? ansi.gray('|') : ''}`
             }, '');

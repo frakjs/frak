@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
 import { statSync } from 'node:fs';
 import * as ansi from './ansi.js';
+import * as cli from './cli.js';
 import config from './config.js';
 import debug from './debug.js';
 
@@ -35,7 +36,7 @@ export default async function diff(dryRunOutput, options) {
 
             return [action, file, target];
         })
-        .filter(([action, file]) => file.slice(-1) !== '/');
+        .filter(([, file]) => file.slice(-1) !== '/');
 
     debug({ changes })
 
@@ -49,7 +50,7 @@ export default async function diff(dryRunOutput, options) {
         return Promise.reject('Process canceled by user');
     }
 
-    const files = changes.map(([action, file]) => file);
+    const files = changes.map(([, file]) => file);
 
     const diffs = changes.sort((a, b) => a[1].localeCompare(b[1])).map(change => {
         const [action, file] = change;
@@ -155,14 +156,14 @@ export default async function diff(dryRunOutput, options) {
                 });
             });
         } else {
-            return await new Promise((resolve, reject) => {
+            return await new Promise((resolve) => {
                 let diff = '';
 
                 ssh.stdout.on('data', (data) => diff += data);
 
                 ssh.stderr.pipe(process.stderr);
 
-                ssh.on('exit', (code) => {
+                ssh.on('exit', () => {
                     resolve(diff);
                 });
             });

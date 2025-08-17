@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 
 import { execSync, spawn } from 'node:child_process';
-import { readFileSync, writeFileSync, existsSync, statSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { writeFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import * as ansi from '../src/ansi.js';
 import * as cli from '../src/cli.js';
@@ -14,8 +13,6 @@ import humanize from '../src/humanize.js';
 import * as rsync from '../src/rsync.js';
 import * as ssh from '../src/ssh.js';
 import * as date from '../src/date.js';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /**
  * Try to load config. If it fails, print error message in red.

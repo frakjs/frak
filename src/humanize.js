@@ -9,5 +9,5 @@ export default function humanize(changes) {
         .replace(/<fc..\.\.\.\.\.\./g,    ansi.yellow('Update     '))
         .replace(/>fc..\.\.\.\.\.\./g,    ansi.yellow('Update     '))
         .replace(/cLc\.T\.\.\.\.\.\./g,   ansi.yellow('Update     '))
-        .replace(/\*deleting  /g,            ansi.red('Delete     '))
+        .replace(/\*deleting {2}/g,          ansi.red('Delete     '))
 }
