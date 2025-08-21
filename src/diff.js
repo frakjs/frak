@@ -22,8 +22,8 @@ export default async function diff(dryRunOutput, options) {
 
             let file, target;
 
-            // Links also have a target
-            if (action === 'cL+++++++++' || action === 'cLc.T......') {
+            // Links also have a target, cL+++++++++ or cLc.T......
+            if (action.match(/^cL.+/)) {
                 const index = parts.indexOf('->');
 
                 debug({ parts })
@@ -43,7 +43,7 @@ export default async function diff(dryRunOutput, options) {
     let proceed = true;
 
     if (changes.length >= 50 && options.interactive) {
-        proceed = await cli.agree(ansi.yellow(`${changes.length} file(s) will be compared. Continue?`))
+        proceed = await cli.agree(ansi.yellow(`${changes.length} file(s) will be compared. Continue? `))
     }
 
     if (!proceed) {
@@ -54,46 +54,50 @@ export default async function diff(dryRunOutput, options) {
 
     const diffs = changes.sort((a, b) => a[1].localeCompare(b[1])).map(change => {
         const [action, file] = change;
+
+        // Escape double quotes in file
+        const fileEscaped = file.replace(/"/g, '\\"');
+
         const header = [
-            `diff --git a/${file} b/${file}`,
+            file.match(/"/) ? `diff --git "a/${fileEscaped}" "b/${fileEscaped}"` : `diff --git a/${file} b/${file}`,
         ];
 
-        let diff = [];
+        let diff = '';
 
         if (action === '*deleting') {
             header.push('deleted file mode 100644');
             header.push('index 0000000..0000000');
 
-            diff = ['diff', '-Naurp', `--label=a/${file}`, `--label=/dev/null`, file, '/dev/null'];
-        } else if (action === '<f+++++++++') {
+            diff = `diff -Naurp --label="a/${fileEscaped}" --label=/dev/null "${fileEscaped}" /dev/null`;
+        } else if (action.match(/^<f\++/)) {
             const { mode } = statSync(file);
 
             header.push(`new file mode ${mode.toString(8)}`);
             header.push('index 0000000..0000000');
 
-            diff = ['diff', '-Naurp', `--label=/dev/null`, `--label=b/${file}`, '/dev/null', `<(tar xzOf $tarball --warning=no-unknown-keyword ${file} || cat /dev/null)`];
-        } else if (action === 'cLc.T......') {
-            const target = change[2];
-
-            header.push('index 0000000..0000000');
-
-            diff = ['diff', '-Naurp', `--label=a/${file}`, `--label=b/${file}`, `<(printf %s $(readlink ${file}))`, `<(printf %s ${target})`];
-        } else if (action === 'cL+++++++++') {
+            diff = `diff -Naurp --label=/dev/null --label="b/${fileEscaped}" /dev/null <(tar xzOf $tarball "${fileEscaped}" || cat /dev/null)`;
+        } else if (action.match(/^cL\++/)) {
             const target = change[2];
 
             header.push('new file mode 120000');
             header.push('index 0000000..0000000');
 
-            diff = ['diff', '-Naurp', `--label=/dev/null`, `--label=b/${file}`, '/dev/null', `<(printf %s ${target})`];
+            diff = `diff -Naurp --label=/dev/null --label="b/${fileEscaped}" /dev/null <(printf %s "${target}")`;
+        } else if (action.match(/^cL.+/)) {
+            const target = change[2];
+
+            header.push('index 0000000..0000000');
+
+            diff = `diff -Naurp --label="a/${fileEscaped}" --label="b/${fileEscaped}" <(printf %s "$(readlink "${fileEscaped}")") <(printf %s "${target}")`;
         } else {
             const { mode } = statSync(file);
 
             header.push(`index 0000000..0000000  ${mode.toString(8)}`);
 
-            diff = ['diff', '-Naurp', `--label=a/${file}`, `--label=b/${file}`, file, `<(tar xzOf $tarball --warning=no-unknown-keyword ${file} || cat /dev/null)`];
+            diff = `diff -Naurp --label="a/${fileEscaped}" --label="b/${fileEscaped}" "${fileEscaped}" <(tar xzOf $tarball "${fileEscaped}" || cat /dev/null)`;
         }
 
-        return [`printf "%s\\n" "${header.join('\n')}"`, ';', ...diff, ';'];
+        return `printf "%s\\n" '${header.join('\n')}'; ${diff}`;
     });
 
     if (diffs.length > 0) {
@@ -104,19 +108,18 @@ export default async function diff(dryRunOutput, options) {
         const ssh = spawn('ssh', [
             config.server,
             '--',
-            'tarball=$(mktemp /tmp/frak-diff-tarball.XXXXXXXX);',
+            'tarball=$(mktemp /tmp/frak-diff-tarball.XXXXXX);',
             'cat > $tarball;',
             `cd ${config.root};`,
-            ...diffs.reduce((commands, diff) => commands.concat(...diff), []),
-            // `${diffs.join(';')};`,
-            // 'rm $tarball',
+            diffs.join('; '), ';',
+            'rm $tarball',
         ])
         tar.stdout.pipe(ssh.stdin);
 
         let less;
 
         if (options.interactive) {
-            less = spawn('less', ['-r'], { stdio: ['pipe', 'inherit', 'inherit'] });
+            less = spawn('less', ['-R'], { stdio: ['pipe', process.stdout, process.stderr] });
         }
 
         if (options.interactive && options.colorize) {
@@ -150,11 +153,14 @@ export default async function diff(dryRunOutput, options) {
                 less.on('exit', (code) => {
                     if (code === 0) {
                         resolve();
+                    /* node:coverage disable */
                     } else {
                         reject(`exited with code ${code}`);
                     }
+                    /* node:coverage enable */
                 });
             });
+        /* node:coverage disable */
         } else {
             return await new Promise((resolve) => {
                 let diff = '';
@@ -168,7 +174,10 @@ export default async function diff(dryRunOutput, options) {
                 });
             });
         }
+        /* node:coverage enable */
     } else if (options.interactive) {
         console.log(ansi.yellow('No changes detected.'));
     }
+
+    return '';
 }

@@ -1,0 +1,8 @@
+*deleting   deleted file
+<fcsT...... file with "quote"
+<f+++++++++ new file
+cL+++++++++ new link -> updated file
+<fcsT...... updated file
+cLc.T...... updated link -> new file
+cd+++++++++ new folder/
+<f+++++++++ new folder/new file

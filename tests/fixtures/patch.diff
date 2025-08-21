@@ -1,0 +1,48 @@
+diff --git a/deleted file b/deleted file
+deleted file mode 100644
+index 0000000..0000000
+diff --git "a/file with \"quote\"" "b/file with \"quote\""
+index 0000000..0000000  100644
+--- a/file with "quote"
++++ b/file with "quote"
+@@ -1 +1 @@
+-The filename has a quote in it.
++The filename has a "quote" in it.
+diff --git a/new file b/new file
+new file mode 100644
+index 0000000..0000000
+--- /dev/null
++++ b/new file
+@@ -0,0 +1 @@
++Lorem ipsum dolor sit amet.
+diff --git a/new folder/new file b/new folder/new file
+new file mode 100644
+index 0000000..0000000
+--- /dev/null
++++ b/new folder/new file
+@@ -0,0 +1 @@
++This is a new file in a new folder
+diff --git a/new link b/new link
+new file mode 120000
+index 0000000..0000000
+--- /dev/null
++++ b/new link
+@@ -0,0 +1 @@
++updated file
+\ No newline at end of file
+diff --git a/updated file b/updated file
+index 0000000..0000000  100644
+--- a/updated file
++++ b/updated file
+@@ -1 +1 @@
+-This line is removed.
++This line is added.
+diff --git a/updated link b/updated link
+index 0000000..0000000
+--- a/updated link
++++ b/updated link
+@@ -1 +1 @@
+-updated file
+\ No newline at end of file
++new file
+\ No newline at end of file

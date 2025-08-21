@@ -31,9 +31,11 @@ export function exec(command, options = {}) {
         ssh.on('exit', (code) => {
             if (code === 0) {
                 resolve();
+            /* node:coverage disable */
             } else {
                 reject(`exited with code ${code}`);
             }
+            /* node:coverage enable */
         });
     });
 

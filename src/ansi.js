@@ -15,7 +15,7 @@ const ansi = {
 };
 
 export function strip(string) {
-    return string
+    return `${string}`
         .replace(new RegExp(ansi.CLEAR.replace('[', '\\['), 'g'), '')
         .replace(new RegExp(ansi.BOLD.replace('[', '\\['), 'g'), '')
         .replace(new RegExp(ansi.UNDERLINE.replace('[', '\\['), 'g'), '')

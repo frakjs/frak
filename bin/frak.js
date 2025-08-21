@@ -23,7 +23,7 @@ async function tryLoadConfig(env) {
     try {
         await loadConfig(env);
     } catch (e) {
-        console.log(ansi.red(e.message));
+        console.error(ansi.red(e.message));
 
         process.exit(1);
     }
@@ -54,7 +54,6 @@ async function main(args) {
     const { command, options } = cli.parse(args.slice(2));
 
     debug('parsed:', { command, options });
-
 
     // Initialize Frak in the current directory
     if (command === 'init') {
@@ -88,9 +87,17 @@ async function main(args) {
     } else if (command === 'diff') {
         await tryLoadConfig(options.env);
 
-        const { output } = await rsync.exec('--dry-run');
+        try {
+            const { output } = await rsync.exec('--dry-run');
 
-        await diff(output, options);
+            debug({ output });
+
+            await diff(output, options);
+        } catch (e) {
+            debug(e);
+
+            console.error(e.message);
+        }
 
     // Push or pull changes to remote server
     } else if (command === 'push' || command === 'pull') {
@@ -99,10 +106,13 @@ async function main(args) {
         // Execute dry-run
         const { output } = await rsync.exec('--dry-run');
 
+        debug({ output });
+
         console.log(humanize(output));
 
         if (command === 'push' && config.after) {
-            console.log(ansi.blue('Run command:'), config.after, '\n');
+            console.log(ansi.blue('Run command:'), config.after);
+            console.log('');
         }
 
         const proceed = await cli.agree(ansi.yellow('The above actions will be taken. Continue? (This cannot be undone): '));
@@ -112,14 +122,18 @@ async function main(args) {
         }
 
         // Prepare patch file
-        let patch;
+        let patch = '';
 
-        try {
-            patch = await diff(output, { interactive: false });
-        } catch (e) {
-            console.error(e);
+        if (command === 'push') {
+            try {
+                patch = await diff(output, { interactive: false });
+            /* node:coverage disable */
+            } catch (e) {
+                console.error(e);
 
-            process.exit(1);
+                process.exit(1);
+            }
+            /* node:coverage enable */
         }
 
         // Execute actual rsync command
@@ -129,12 +143,14 @@ async function main(args) {
         console.log(humanize(actualOutput));
 
         // Place patch file in backup dir
-        const hash = sha256(patch).slice(0, 7);
-        const copy = spawn('ssh', [config.server, '--', `cat > '${config.root || '.'}/${backupPath}/${hash}.patch'`]);
+        if (command === 'push') {
+            const hash = sha256(patch).slice(0, 7);
+            const copy = spawn('ssh', [config.server, '--', `cat > '${config.root || '.'}/${backupPath}/${hash}.patch'`]);
 
-        copy.stdout.on('data', (data) => debug('' + data));
-        copy.stderr.on('data', (data) => debug('' + data));
-        copy.stdin.write(patch);
+            copy.stdout.on('data', (data) => debug('' + data));
+            copy.stderr.on('data', (data) => debug('' + data));
+            copy.stdin.write(patch);
+        }
 
         // Execute "after" command
         if (command === 'push' && config.after) {
@@ -144,9 +160,11 @@ async function main(args) {
 
             try {
                 await ssh.exec(config.after, { server: config.server, root: config.root });
+            /* node:coverage disable */
             } catch (e) {
                 debug(e);
             }
+            /* node:coverage enable */
         }
 
         // TODO Webhook

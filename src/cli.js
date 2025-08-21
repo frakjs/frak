@@ -13,7 +13,11 @@ export function parse(args) {
     };
 
     for (let arg of args) {
-        if (arg.includes('=')) {
+        if (arg === '--yes' || arg === '-y') {
+            options.interactive = false;
+        } else if (arg === '--no-color') {
+            options.colorize = false;
+        } else if (arg.includes('=')) {
             const [option, value] = arg.split('=', 2);
 
             options[option] = value;
@@ -25,11 +29,14 @@ export function parse(args) {
     return { command, options };
 }
 
-export async function agree(string) {
-    process.stdout.write(string);
+export async function agree(string, { stdin = null, stdout = null } = {}) {
+    stdout = stdout ?? process.stdout;
+    stdin = stdin ?? process.stdin;
+
+    stdout.write(string);
 
     const answer = await new Promise((resolve) => {
-        process.stdin.on('data', data => resolve(data));
+        stdin.on('data', data => resolve(data));
     });
 
     return ['y', 'yes'].includes(`${answer}`.trim().toLowerCase());

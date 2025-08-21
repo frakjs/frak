@@ -1,0 +1,10 @@
+Delete      deleted file
+Update      file with "quote"
+New File    new file
+New Link    new link -> updated file
+Update      updated file
+Update      updated link -> new file
+New Folder  new folder/
+New File    new folder/new file
+
+The above actions will be taken. Continue? (This cannot be undone):

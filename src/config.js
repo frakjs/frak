@@ -34,7 +34,11 @@ export async function load(env = null) {
         Object.assign(config, (await import(configPath)).default);
 
         if (env in config) {
-            return Object.assign(config, {...config[env]});
+            Object.assign(config, {...config[env]});
+
+            delete config[env];
+
+            return config;
         }
 
         if (env) {

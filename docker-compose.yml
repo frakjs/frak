@@ -1,0 +1,19 @@
+services:
+  client:
+    build: ./.docker/client
+    volumes:
+      - .:/app
+    networks:
+      - frak
+  server:
+    build: ./.docker/server
+    volumes:
+      - .:/app
+      - ./tests/fixtures/html:/var/www/html
+      - ./tests/fixtures/example.after:/var/www/example.after
+    networks:
+      - frak
+
+networks:
+  frak:
+    driver: bridge

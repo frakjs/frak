@@ -54,7 +54,7 @@ export function relative(date) {
         value = Math.floor(seconds / 60 / 60 / 24 / 30);
         unit = plural('month', value);
     } else {
-        return `${months[datetime.getMonth()]} ${datetime.getDay()}, ${datetime.getFullYear()} @ ${datetime.getHours() % 12}:${`0${datetime.getMinutes()}`.slice(-2)} ${datetime.getHours() >= 12 ? 'pm' : 'am'}`;
+        return `${months[datetime.getMonth()]} ${datetime.getDate()}, ${datetime.getFullYear()} @ ${datetime.getHours() % 12}:${`0${datetime.getMinutes()}`.slice(-2)} ${datetime.getHours() >= 12 ? 'pm' : 'am'}`;
     }
 
     return `${value} ${unit} ${agoOrFromNow}`.trim();

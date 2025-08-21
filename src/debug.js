@@ -5,6 +5,6 @@ import * as ansi from '../src/ansi.js';
  */
 export default function debug() {
     if (process.env.DEBUG) {
-        console.log.apply(console, [ansi.bold(ansi.cyan('DEBUG:')), ...arguments]);
+        console.log.apply(console, [ ansi.bold(ansi.cyan('DEBUG:')), ...arguments ]);
     }
 }

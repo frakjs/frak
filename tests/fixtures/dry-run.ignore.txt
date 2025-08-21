@@ -1,0 +1,5 @@
+Delete      deleted file
+New File    new file
+Update      updated file
+
+The above actions will be taken. Continue? (This cannot be undone):

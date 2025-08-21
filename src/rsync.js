@@ -19,6 +19,7 @@ export function filters() {
         '.git*',
         '.svn*',
         '.tags*',
+        'frak.config.js',
         'Capfile',
         'Gemfile*',
         'Vagrantfile*',
@@ -31,7 +32,8 @@ export function filters() {
 
     // merge path
     if (options.path) {
-        const paths = options.path.split(/ +/)
+        const paths = options.path.split(/((?<!\\) )+/)
+            .map(p => p.replace(/\\ /g, ' '))
             .map(p => path.resolve(p))
             .map(p => p) // TODO glob // paths.map! { |p| p[/[*?]/] ? Dir.glob(p) : p }
             .flat(Infinity)
@@ -147,9 +149,11 @@ export function exec(...options) {
                     output,
                     backupPath,
                 });
+            /* node:coverage disable */
             } else {
                 reject(`rsync exited with code ${code}`);
             }
+            /* node:coverage enable */
         });
     });
 }

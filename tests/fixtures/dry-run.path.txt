@@ -1,0 +1,5 @@
+New File    new file
+New Folder  new folder/
+New File    new folder/new file
+
+The above actions will be taken. Continue? (This cannot be undone):
