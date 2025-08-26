@@ -18,7 +18,7 @@
   <h3 align="center">frak</h3>
 
   <p align="center">
-    Quick deployment tool using Rsync and SSH.
+    Deploy from point A → point B, without the drama.
     <br />
     <br />
     <a href="https://github.com/frakjs/frak/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
@@ -55,9 +55,9 @@
 
 [![Product Name Screen Shot][product-screenshot]](https://frakjs.com)
 
-**`frak`** is an agentless deployment tool for web apps. It leverages `rsync` over SSH to push files to a remote server, and is able to visualize file changes in a developer-friendly way. **`frak`** has a number of advanced features beyond syncing files to a remote server, such as keeping a history of deployments for easy rollback, showing file differences prior to pushing, and post-deploy hooks.
+**`frak`** is a tiny JavaScript binary for deployments that don’t need containers or repos—just fast, reliable file transfer from point A to point B.
 
-> “Frak it, ship it.”
+It leverages `rsync` over SSH to push files to a remote server, and is able to visualize file changes in a developer-friendly way. **`frak`** has a number of advanced features beyond syncing files to a remote server, such as keeping a history of deployments for easy rollback, showing file differences prior to pushing, and executing post-deploy hooks.
 
 ### 🚀 Features
 
@@ -74,7 +74,7 @@
 <!-- GETTING STARTED -->
 ## Getting Started
 
-Using frak is simple. All you need is a [Node.js](https://nodejs.org) environment with `npx`.
+Using **`frak`** is simple. All you need is a [Node.js](https://nodejs.org) environment with `npx`.
 
 ### Prerequisites
 
@@ -93,7 +93,7 @@ npx --version
 <!-- USAGE EXAMPLES -->
 ## Usage
 
-The recommended way to run `frak` is via the `npx` command.
+The recommended way to run **`frak`** is via the `npx` command.
 
 ```bash
 npx @frakjs/frak --help
