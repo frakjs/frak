@@ -1,7 +1,7 @@
 import assert from 'node:assert';
 import * as config from '../../src/config.js';
 import path from 'node:path';
-import test, { afterEach, before, beforeEach, suite } from 'node:test';
+import test, { afterEach, beforeEach, suite } from 'node:test';
 
 suite('src/config.js', () => {
     beforeEach(() => {
