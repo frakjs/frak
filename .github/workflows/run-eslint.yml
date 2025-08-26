@@ -13,7 +13,7 @@ jobs:
   eslint:
     runs-on: ubuntu-latest
     container:
-      image: ./.docker/client/Dockerfile
+      image: node:20-alpine
       volumes:
         - .:/app
     steps:

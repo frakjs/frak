@@ -13,17 +13,12 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    container:
-      image: ./.docker/client/Dockerfile
-      volumes:
-        - .:/app
-    services:
-      server:
-        image: ./.docker/server/Dockerfile
     steps:
-      - name: Check out repository code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: docker/setup-compose-action@v2
+      - name: Build Docker images
+        run: docker compose up -d
       - name: Install dependencies
-        run: npm ci
+        run: docker compose exec client npm ci
       - name: Run unit tests
-        run: npm test
+        run: docker compose exec client npm test
