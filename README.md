@@ -187,7 +187,7 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 <!-- CONTACT -->
 ## Contact
 
-Frank Strube - [@strube](https://twitter.com/strube) - contact@frakjs.com
+Frank Strube - [@strube](https://x.com/strube) - contact@frakjs.com
 
 Project Link: [https://github.com/frakjs/frak](https://github.com/frakjs/frak)
 
