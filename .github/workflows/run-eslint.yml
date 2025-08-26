@@ -1,0 +1,25 @@
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/run-eslint.yml
+      - bin/**/*.js
+      - package.json
+      - package-lock.json
+      - src/**/*.js
+      - tests/**/*.js
+jobs:
+  eslint:
+    runs-on: ubuntu-latest
+    container:
+      image: ./.docker/client/Dockerfile
+      volumes:
+        - .:/app
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+      - name: Install dependencies
+        run: npm ci
+      - name: Run ESLint
+        run: npm run eslint
