@@ -11,7 +11,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/frakjs/frak">
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-cloud-upload-icon lucide-cloud-upload"><path d="M12 13v8"/><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="m8 17 4-4 4 4"/></svg>
+    <img src="images/logos/Frak Logo - Green - 256.png" width="48" />
   </a>
 
   <h3 align="center">frak</h3>
@@ -204,6 +204,7 @@ Project Link: [https://github.com/frakjs/frak](https://github.com/frakjs/frak)
 [issues-url]: https://github.com/frakjs/frak/issues
 [license-shield]: https://img.shields.io/github/license/frakjs/frak.svg?style=for-the-badge
 [license-url]: https://github.com/frakjs/frak/blob/master/LICENSE.txt
-[product-screenshot]: images/screenshot.png
-[prerequisites-screenshot]: images/node-npm-version.png
-[frak-init-screenshot]: images/frak-init-screenshot.png
+[green-logo]: images/logos/Frak%20Logo%20-%20Green%20-%20256.png
+[product-screenshot]: images/screenshots/screenshot.png
+[prerequisites-screenshot]: images/screenshots/node-npm-version.png
+[frak-init-screenshot]: images/screenshots/frak-init-screenshot.png
