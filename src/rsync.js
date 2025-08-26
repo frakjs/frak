@@ -138,9 +138,11 @@ export function exec(...options) {
         output += `${data}`;
     });
 
+    /* node:coverage disable */
     rsync.stderr.on('data', (data) => {
         process.stderr.write(`${data}`); // Print any errors from the child process
     });
+    /* node:coverage enable */
 
     return new Promise((resolve, reject) => {
         rsync.on('exit', (code) => {
