@@ -11,7 +11,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/frakjs/frak">
-    <img src="images/logos/Frak Logo - Green - 256.png" width="48" />
+    <img src="images/logos/Frak Logo - Green - 256.png" width="112" />
   </a>
 
   <h3 align="center">frak</h3>
