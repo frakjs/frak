@@ -6,7 +6,6 @@
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
 [![MIT][license-shield]][license-url]
-[![LinkedIn][linkedin-shield]][linkedin-url]
 
 <!-- PROJECT LOGO -->
 <br />
@@ -205,8 +204,6 @@ Project Link: [https://github.com/frakjs/frak](https://github.com/frakjs/frak)
 [issues-url]: https://github.com/frakjs/frak/issues
 [license-shield]: https://img.shields.io/github/license/frakjs/frak.svg?style=for-the-badge
 [license-url]: https://github.com/frakjs/frak/blob/master/LICENSE.txt
-[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
-[linkedin-url]: https://linkedin.com/in/linkedin_username
 [product-screenshot]: images/screenshot.png
 [prerequisites-screenshot]: images/node-npm-version.png
 [frak-init-screenshot]: images/frak-init-screenshot.png
