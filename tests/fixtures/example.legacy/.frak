@@ -1,0 +1,5 @@
+server: server
+remote_path: /var/www/html
+
+staging:
+    server: staging

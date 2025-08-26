@@ -139,8 +139,27 @@ suite('bin/frak.js', () => {
             assert.strictEqual(ansi.strip(stdout).trimEnd(), expected);
         });
 
-        test('creates backups', async () => {
+        test('works with legacy config', async () => {
+            let stdout = '';
+            const frak = spawn('node', ['/app/bin/frak.js'], { cwd: './tests/fixtures/example.legacy' });
+            const promise = new Promise((resolve) => frak.on('exit', () => resolve()));
 
+            frak.stdin.write('no');
+            frak.stdout.on('data', data => stdout += data);
+
+            await promise;
+
+            const expected = [
+                'Delete      updated link',
+                'Delete      updated file',
+                'Delete      old link',
+                'Delete      file with "quote"',
+                'Delete      deleted file',
+                '',
+                'The above actions will be taken. Continue? (This cannot be undone):'
+            ].join('\n');
+
+            assert.strictEqual(ansi.strip(stdout).trimEnd(), expected);
         });
     });
 
