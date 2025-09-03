@@ -1,0 +1,5 @@
+/.docker/
+/.github/
+/docker-compose.yml
+/eslint.config.js
+/tests/
