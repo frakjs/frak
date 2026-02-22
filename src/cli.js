@@ -36,7 +36,7 @@ export async function agree(string, { stdin = null, stdout = null } = {}) {
     stdout.write(string);
 
     const answer = await new Promise((resolve) => {
-        stdin.on('data', data => resolve(data));
+        stdin.on('data', (data) => resolve(data));
     });
 
     return ['y', 'yes'].includes(`${answer}`.trim().toLowerCase());
@@ -56,8 +56,8 @@ export class Table {
         const { border, header } = this.columns.reduce(({ header, border }, column, i) => {
             const width = ansi.strip(column.header).length;
             const padding = Math.max(0, column.width - width - 2);
-            const paddingString = (new Array(padding + 1)).join(' ');
-            const borderString = (new Array(column.width + 1).join('-'));
+            const paddingString = new Array(padding + 1).join(' ');
+            const borderString = new Array(column.width + 1).join('-');
 
             return {
                 border: `${border || ''}+${borderString}${i === this.columns.length - 1 ? '+' : ''}`,
@@ -69,17 +69,17 @@ export class Table {
         console.log(header);
         console.log(ansi.gray(border));
 
-        this.rows.forEach(r => {
+        this.rows.forEach((r) => {
             const rowString = r.reduce((row, cell, i) => {
-                const width = ansi.strip(cell).length
+                const width = ansi.strip(cell).length;
                 const padding = Math.max(0, this.columns[i].width - width - 2);
-                const paddingString = (new Array(padding + 1)).join(' ');
+                const paddingString = new Array(padding + 1).join(' ');
 
-                return `${row || ''}${ansi.gray('|')} ${cell}${paddingString} ${i === r.length - 1 ? ansi.gray('|') : ''}`
+                return `${row || ''}${ansi.gray('|')} ${cell}${paddingString} ${i === r.length - 1 ? ansi.gray('|') : ''}`;
             }, '');
 
             console.log(rowString);
             console.log(ansi.gray(border));
-        })
+        });
     }
 }

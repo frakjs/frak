@@ -43,10 +43,7 @@ export async function load(env = null) {
     if (path.basename(configPath) === 'frak.config.js') {
         Object.assign(config, (await import(configPath)).default);
     } else if (path.basename(configPath) === '.frak') {
-        Object.assign(
-            config,
-            parse(fs.readFileSync(configPath).toString('utf-8')),
-        );
+        Object.assign(config, parse(fs.readFileSync(configPath).toString('utf-8')));
     }
 
     if (env in config) {

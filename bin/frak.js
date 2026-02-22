@@ -55,20 +55,22 @@ async function main(args) {
 
     debug('parsed:', { command, options });
 
-    // Initialize Frak in the current directory
     if (command === 'init') {
+        // Initialize Frak in the current directory
         const configPath = path.join(process.cwd(), 'frak.config.js');
 
         if (!existsSync(configPath)) {
-            writeFileSync(configPath, `export default ${JSON.stringify({ server: 'example.com', root: '/var/www/html' }, null, 4)}`);
+            writeFileSync(
+                configPath,
+                `export default ${JSON.stringify({ server: 'example.com', root: '/var/www/html' }, null, 4)}`
+            );
             console.info(ansi.green('Configuration file created: frak.config.js'));
         } else {
             console.error(ansi.red('Frak is already initialized in this directory.'));
         }
-
-    // Start a console session, or run the provided command on
-    // the remote server.
     } else if (command === 'console') {
+        // Start a console session, or run the provided command on
+        // the remote server.
         await tryLoadConfig(options.env);
 
         if (!config.server) {
@@ -79,12 +81,14 @@ async function main(args) {
         try {
             const cmd = options.command ?? '\\$SHELL -l -i';
 
-            execSync(`ssh -t ${config.server} -- cd ${config.root} \\&\\& ${cmd}`, { stdio: 'inherit' });
+            execSync(`ssh -t ${config.server} -- cd ${config.root} \\&\\& ${cmd}`, {
+                stdio: 'inherit',
+            });
         } catch (e) {
-            debug(e)
+            debug(e);
         }
-    // Show the differences between local files and remote server
     } else if (command === 'diff') {
+        // Show the differences between local files and remote server
         await tryLoadConfig(options.env);
 
         try {
@@ -98,9 +102,8 @@ async function main(args) {
 
             console.error(e.message);
         }
-
-    // Push or pull changes to remote server
     } else if (command === 'push' || command === 'pull') {
+        // Push or pull changes to remote server
         await tryLoadConfig(options.env);
 
         // Execute dry-run
@@ -115,7 +118,9 @@ async function main(args) {
             console.log('');
         }
 
-        const proceed = await cli.agree(ansi.yellow('The above actions will be taken. Continue? (This cannot be undone): '));
+        const proceed = await cli.agree(
+            ansi.yellow('The above actions will be taken. Continue? (This cannot be undone): ')
+        );
 
         if (!proceed) {
             process.exit(1);
@@ -127,13 +132,13 @@ async function main(args) {
         if (command === 'push') {
             try {
                 patch = await diff(output, { interactive: false });
-            /* node:coverage disable */
             } catch (e) {
+                /* node:coverage disable */
                 console.error(e);
 
                 process.exit(1);
+                /* node:coverage enable */
             }
-            /* node:coverage enable */
         }
 
         // Execute actual rsync command
@@ -145,7 +150,11 @@ async function main(args) {
         // Place patch file in backup dir
         if (command === 'push') {
             const hash = sha256(patch).slice(0, 7);
-            const copy = spawn('ssh', [config.server, '--', `cat > '${config.root || '.'}/${backupPath}/${hash}.patch'`]);
+            const copy = spawn('ssh', [
+                config.server,
+                '--',
+                `cat > '${config.root || '.'}/${backupPath}/${hash}.patch'`,
+            ]);
 
             copy.stdout.on('data', (data) => debug('' + data));
             copy.stderr.on('data', (data) => debug('' + data));
@@ -159,12 +168,15 @@ async function main(args) {
             debug({ command: config.after });
 
             try {
-                await ssh.exec(config.after, { server: config.server, root: config.root });
-            /* node:coverage disable */
+                await ssh.exec(config.after, {
+                    server: config.server,
+                    root: config.root,
+                });
             } catch (e) {
+                /* node:coverage disable */
                 debug(e);
+                /* node:coverage enable */
             }
-            /* node:coverage enable */
         }
 
         // TODO Webhook
@@ -179,13 +191,16 @@ async function main(args) {
         const grep = {
             additions: `grep -e '^+' "$NAME"/*.patch | grep -v '^+++' | wc -l`,
             deletions: `grep -e '^-' "$NAME"/*.patch | grep -v '^---' | wc -l`,
-        }
+        };
         const ls = `stat --format='%Y %n' .backups/* | sort -r`;
 
-        const list = ssh.exec(`${ls} | xargs -I {} sh -c 'TIMESTAMP=$(echo {} | cut -d" " -f1); NAME=$(echo {} | cut -d" " -f2-); echo $TIMESTAMP${delimeter}$NAME${delimeter}$(${grep.additions})${delimeter}$(${grep.deletions})'`, { quiet: true, server: config.server, root: config.root });
+        const list = ssh.exec(
+            `${ls} | xargs -I {} sh -c 'TIMESTAMP=$(echo {} | cut -d" " -f1); NAME=$(echo {} | cut -d" " -f2-); echo $TIMESTAMP${delimeter}$NAME${delimeter}$(${grep.additions})${delimeter}$(${grep.deletions})'`,
+            { quiet: true, server: config.server, root: config.root }
+        );
         let backups = '';
 
-        list.stdout.on('data', data => backups += data);
+        list.stdout.on('data', (data) => (backups += data));
 
         await list;
 
@@ -201,17 +216,22 @@ async function main(args) {
             {
                 header: 'Changes',
                 width: 30,
-            }
+            },
         ]);
 
-        backups.trim().split(/\n/).forEach(backup => {
-            const [ timestamp, name, additions, deletions ] = backup.split(delimeter);
-            table.row([
-                name.replace(/^.backups\//, ''),
-                date.relative(timestamp * 1000),
-                ansi.green(`${additions} addition${additions == 1 ? '' : 's'}`) + ', ' + ansi.red(`${deletions} deletion${deletions == 1 ? '' : 's'}`),
-            ]);
-        });
+        backups
+            .trim()
+            .split(/\n/)
+            .forEach((backup) => {
+                const [timestamp, name, additions, deletions] = backup.split(delimeter);
+                table.row([
+                    name.replace(/^.backups\//, ''),
+                    date.relative(timestamp * 1000),
+                    ansi.green(`${additions} addition${additions == 1 ? '' : 's'}`) +
+                        ', ' +
+                        ansi.red(`${deletions} deletion${deletions == 1 ? '' : 's'}`),
+                ]);
+            });
 
         table.print();
     } else {

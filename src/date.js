@@ -29,28 +29,28 @@ export function relative(date) {
         value = 'just';
         unit = 'now';
         agoOrFromNow = '';
-    // Less than a minute
     } else if (seconds < 60) {
+        // Less than a minute
         value = Math.floor(seconds);
         unit = plural('second', value);
-    // Less than an hour
     } else if (seconds < 60 * 60) {
+        // Less than an hour
         value = Math.floor(seconds / 60);
         unit = plural('minute', value);
-    // Less than a day
     } else if (seconds < 60 * 60 * 24) {
+        // Less than a day
         value = Math.floor(seconds / 60 / 60);
         unit = plural('hour', value);
-    // Less than a week
     } else if (seconds < 60 * 60 * 24 * 7) {
+        // Less than a week
         value = Math.floor(seconds / 60 / 60 / 24);
         unit = plural('day', value);
-    // Less than a month
     } else if (seconds < 60 * 60 * 24 * 30) {
+        // Less than a month
         value = Math.floor(seconds / 60 / 60 / 24 / 7);
         unit = plural('week', value);
-    // Less than a year
     } else if (seconds < 60 * 60 * 24 * 365) {
+        // Less than a year
         value = Math.floor(seconds / 60 / 60 / 24 / 30);
         unit = plural('month', value);
     } else {

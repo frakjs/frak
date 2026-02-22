@@ -6,7 +6,7 @@ export function exec(command, options = {}) {
 
     const cmd = `cd ${options.root || '.'}; sh`;
 
-    const ssh = spawn('ssh', [ options.server, '--', cmd ]);
+    const ssh = spawn('ssh', [options.server, '--', cmd]);
 
     // const echo = spawn('echo', [ command ]);
 
@@ -31,11 +31,11 @@ export function exec(command, options = {}) {
         ssh.on('exit', (code) => {
             if (code === 0) {
                 resolve();
-            /* node:coverage disable */
             } else {
+                /* node:coverage disable */
                 reject(`exited with code ${code}`);
+                /* node:coverage enable */
             }
-            /* node:coverage enable */
         });
     });
 

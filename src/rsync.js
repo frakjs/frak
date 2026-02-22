@@ -32,23 +32,24 @@ export function filters() {
 
     // merge path
     if (options.path) {
-        const paths = options.path.split(/((?<!\\) )+/)
-            .map(p => p.replace(/\\ /g, ' '))
-            .map(p => path.resolve(p))
-            .map(p => p) // TODO glob // paths.map! { |p| p[/[*?]/] ? Dir.glob(p) : p }
+        const paths = options.path
+            .split(/((?<!\\) )+/)
+            .map((p) => p.replace(/\\ /g, ' '))
+            .map((p) => path.resolve(p))
+            .map((p) => p) // TODO glob // paths.map! { |p| p[/[*?]/] ? Dir.glob(p) : p }
             .flat(Infinity)
             // make paths relative to .frak file
-            .map(p => p.replace(path.dirname(locateConfig()), ''));
+            .map((p) => p.replace(path.dirname(locateConfig()), ''));
 
         // include all parent directories to fix recursive rsync from excluding all
-        paths.forEach(p => {
+        paths.forEach((p) => {
             includes.push(p);
 
             while (path.dirname(p) !== '/') {
                 excludes.push(`${path.dirname(p)}/*`);
 
                 p = path.dirname(p);
-                includes.push(p)
+                includes.push(p);
             }
         });
 
@@ -60,8 +61,8 @@ export function filters() {
         filters.push('.e .frakignore');
     }
 
-    includes.forEach(include => filters.push(`+ ${include}`));
-    excludes.forEach(include => filters.push(`- ${include}`));
+    includes.forEach((include) => filters.push(`+ ${include}`));
+    excludes.forEach((include) => filters.push(`- ${include}`));
 
     return filters;
 }
@@ -90,35 +91,44 @@ export function exec(...options) {
     }
 
     let backup = [];
-    let backupName = 'name' in commandOptions
-        ? `${commandOptions.name}_${(new Date()).toISOString()}`
-        : (new Date()).toISOString();
+    let backupName =
+        'name' in commandOptions
+            ? `${commandOptions.name}_${new Date().toISOString()}`
+            : new Date().toISOString();
 
     // Figure out backup options
-    backup = [
-        '--exclude=.backups/',
-    ];
+    backup = ['--exclude=.backups/'];
 
     // Keep the same backup path for all rsync commands
     if (backupPath === null) {
-        backupPath = `.backups/${backupName}`
+        backupPath = `.backups/${backupName}`;
     }
 
     // This should only happen on push
     if (command === 'push') {
-        backup = [...backup, '--backup', `--backup-dir='${backupPath}'`]
+        backup = [...backup, '--backup', `--backup-dir='${backupPath}'`];
     }
 
     const args = [
         'rsync',
         [
-            '--archive', '--no-group', '--no-owner', '--no-perms', '--no-times', '--human-readable',
-            '--compress', '--checksum', '--itemize-changes', '--recursive', '--delete',
+            '--archive',
+            '--no-group',
+            '--no-owner',
+            '--no-perms',
+            '--no-times',
+            '--human-readable',
+            '--compress',
+            '--checksum',
+            '--itemize-changes',
+            '--recursive',
+            '--delete',
             `--rsync-path=${config['rsync_path'] ? config['rsync_path'] : 'rsync'}`,
             '--filter=. -',
             ...backup,
             ...options,
-            source, destination,
+            source,
+            destination,
         ],
     ];
 
@@ -130,7 +140,7 @@ export function exec(...options) {
 
     const rsync = spawn.apply(null, args);
 
-    const echo = spawn('echo', [ filters().join('\n') ]);
+    const echo = spawn('echo', [filters().join('\n')]);
 
     echo.stdout.pipe(rsync.stdin);
 
@@ -151,11 +161,11 @@ export function exec(...options) {
                     output,
                     backupPath,
                 });
-            /* node:coverage disable */
             } else {
+                /* node:coverage disable */
                 reject(`rsync exited with code ${code}`);
+                /* node:coverage enable */
             }
-            /* node:coverage enable */
         });
     });
 }
