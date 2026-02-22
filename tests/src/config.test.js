@@ -6,10 +6,13 @@ import test, { afterEach, beforeEach, suite } from 'node:test';
 suite('src/config.js', () => {
     beforeEach(() => {
         config.reset();
-    })
+    });
 
     test('returns null if it cannot locate a config', () => {
-        assert.rejects(async () => await config.load(), new Error('Config file not found! Try running frak init.'));
+        assert.rejects(
+            async () => await config.load(),
+            new Error('Config file not found! Try running frak init.'),
+        );
     });
 
     test('thows if it cannot load a config', () => {
@@ -44,7 +47,17 @@ suite('src/config.js', () => {
                 server: 'server',
                 staging: {
                     server: 'staging',
+                    remote_path: '/var/www/staging',
                 },
+            });
+        });
+
+        test('can load a config environment', async () => {
+            const loaded = await config.load('staging');
+
+            assert.deepStrictEqual(loaded, {
+                root: '/var/www/staging',
+                server: 'staging',
             });
         });
     });
@@ -101,7 +114,12 @@ suite('src/config.js', () => {
         });
 
         test('throws error when environment is not found', async () => {
-            assert.rejects(async () => await config.load('production'), new Error('Missing configuration for environment "production"!'));
+            assert.rejects(
+                async () => await config.load('production'),
+                new Error(
+                    'Missing configuration for environment "production"!',
+                ),
+            );
         });
     });
 });

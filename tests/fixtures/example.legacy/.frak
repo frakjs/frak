@@ -3,3 +3,4 @@ remote_path: /var/www/html
 
 staging:
     server: staging
+    remote_path: /var/www/staging
