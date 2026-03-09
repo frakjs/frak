@@ -28,6 +28,6 @@ jobs:
       - name: Build Docker images
         run: docker compose up -d
       - name: Install dependencies
-        run: docker compose exec client-v12 npm ci
+        run: docker compose exec client-v12 npm install --no-progress
       - name: Run legacy test
         run: docker compose exec client-v12 node tests/v12.test.js
