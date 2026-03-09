@@ -10,6 +10,15 @@ on:
       - package-lock.json
       - src/**/*
       - tests/**/*
+  pull_request:
+    paths:
+      - .docker/**/*
+      - .github/workflows/run-tests.yml
+      - bin/**/*
+      - package.json
+      - package-lock.json
+      - src/**/*
+      - tests/**/*
 jobs:
   test:
     runs-on: ubuntu-latest
