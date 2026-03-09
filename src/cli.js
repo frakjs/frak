@@ -30,8 +30,8 @@ export function parse(args) {
 }
 
 export async function agree(string, { stdin = null, stdout = null } = {}) {
-    stdout = stdout ?? process.stdout;
-    stdin = stdin ?? process.stdin;
+    stdout = stdout || process.stdout;
+    stdin = stdin || process.stdin;
 
     stdout.write(string);
 
