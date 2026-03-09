@@ -12,7 +12,7 @@
   "type": "module",
   "scripts": {
     "eslint": "eslint",
-    "test": "node --test --experimental-test-coverage"
+    "test": "node --experimental-test-coverage tests/index.test.js"
   },
   "repository": {
     "type": "git",
