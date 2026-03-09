@@ -19,4 +19,4 @@ EXPOSE 22
 
 CMD ["/usr/sbin/sshd", "-D"]
 
-VOLUME [ "/var/www/html", "/var/www/example.after" ]
+VOLUME [ "/var/www/html", "/var/www/example.after", "/var/www/example.fail-after" ]

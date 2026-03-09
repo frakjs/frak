@@ -22,3 +22,5 @@ jobs:
         run: docker compose exec client npm ci
       - name: Run unit tests
         run: docker compose exec client npm test
+      - name: Run legacy test
+        run: docker compose exec client-v12 node tests/v12.test.js

@@ -20,15 +20,11 @@ import * as date from '../src/date.js';
  * @param {String} env
  */
 async function tryLoadConfig(env) {
-    try {
-        await loadConfig(env);
-    } catch (e) {
+    return await loadConfig(env).catch((e) => {
         console.error(ansi.red(e.message));
 
         process.exit(1);
-    }
-
-    return;
+    });
 }
 
 /**
@@ -130,15 +126,14 @@ async function main(args) {
         let patch = '';
 
         if (command === 'push') {
-            try {
-                patch = await diff(output, { interactive: false });
-            } catch (e) {
+            patch = await diff(output, { interactive: false })
                 /* node:coverage disable */
-                console.error(e);
+                .catch((e) => {
+                    console.error(e);
 
-                process.exit(1);
-                /* node:coverage enable */
-            }
+                    process.exit(1);
+                });
+            /* node:coverage enable */
         }
 
         // Execute actual rsync command
@@ -167,16 +162,12 @@ async function main(args) {
 
             debug({ command: config.after });
 
-            try {
-                await ssh.exec(config.after, {
+            await ssh
+                .exec(config.after, {
                     server: config.server,
                     root: config.root,
-                });
-            } catch (e) {
-                /* node:coverage disable */
-                debug(e);
-                /* node:coverage enable */
-            }
+                })
+                .catch(debug);
         }
 
         // TODO Webhook

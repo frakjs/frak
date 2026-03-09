@@ -5,12 +5,19 @@ services:
       - .:/app
     networks:
       - frak
+  client-v12:
+    build: ./.docker/client-v12
+    volumes:
+      - .:/app
+    networks:
+      - frak
   server:
     build: ./.docker/server
     volumes:
       - .:/app
       - ./tests/fixtures/html:/var/www/html
       - ./tests/fixtures/example.after:/var/www/example.after
+      - ./tests/fixtures/example.fail-after:/var/www/example.fail-after
     networks:
       - frak
 
