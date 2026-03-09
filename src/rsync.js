@@ -123,6 +123,7 @@ export function exec(...options) {
             '--itemize-changes',
             '--recursive',
             '--delete',
+            process.env.DEBUG ? '--rsh=ssh' : '--rsh=ssh -q',
             `--rsync-path=${config['rsync_path'] ? config['rsync_path'] : 'rsync'}`,
             '--filter=. -',
             ...backup,
