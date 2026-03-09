@@ -29,5 +29,7 @@ jobs:
         run: docker compose up -d
       - name: Install dependencies
         run: docker compose exec client-v12 npm install --no-progress
+      - name: Add server to SSH known_hosts
+        run: docker compose exec client-v12 ssh-keyscan server >> ~/.ssh/known_hosts
       - name: Run legacy test
         run: docker compose exec client-v12 node tests/v12.test.js
