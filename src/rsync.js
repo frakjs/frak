@@ -106,7 +106,7 @@ export function exec(...options) {
 
     // This should only happen on push
     if (command === 'push') {
-        backup = [...backup, '--backup', `--backup-dir='${backupPath}'`];
+        backup = [...backup, '--backup', `--backup-dir=${backupPath}`];
     }
 
     const args = [
@@ -123,6 +123,7 @@ export function exec(...options) {
             '--itemize-changes',
             '--recursive',
             '--delete',
+            process.env.DEBUG ? '--rsh=ssh' : '--rsh=ssh -q',
             `--rsync-path=${config['rsync_path'] ? config['rsync_path'] : 'rsync'}`,
             '--filter=. -',
             ...backup,
@@ -136,7 +137,8 @@ export function exec(...options) {
     debug(args.flat().join(' '));
     debug('filters:', filters());
 
-    let output = '';
+    let output = '',
+        stderr = '';
 
     const rsync = spawn.apply(null, args);
 
@@ -146,6 +148,9 @@ export function exec(...options) {
 
     rsync.stdout.on('data', (data) => {
         output += `${data}`;
+    });
+    rsync.stderr.on('data', (data) => {
+        stderr += `${data}`;
     });
 
     /* node:coverage disable */
@@ -163,7 +168,7 @@ export function exec(...options) {
                 });
             } else {
                 /* node:coverage disable */
-                reject(`rsync exited with code ${code}`);
+                reject(`rsync exited with code ${code}: ${stderr}`);
                 /* node:coverage enable */
             }
         });

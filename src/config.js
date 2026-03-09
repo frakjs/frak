@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { parse } from 'yaml';
+import * as yaml from 'yaml';
 
 // Cached config object. The config is stored in here so it can
 // be loaded once and imported across all modules.
@@ -43,7 +43,7 @@ export async function load(env = null) {
     if (path.basename(configPath) === 'frak.config.js') {
         Object.assign(config, (await import(configPath)).default);
     } else if (path.basename(configPath) === '.frak') {
-        Object.assign(config, parse(fs.readFileSync(configPath).toString('utf-8')));
+        Object.assign(config, yaml.parse(fs.readFileSync(configPath).toString('utf-8')));
     }
 
     if (env in config) {
