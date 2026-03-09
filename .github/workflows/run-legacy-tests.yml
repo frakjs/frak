@@ -1,0 +1,33 @@
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .docker/**/*
+      - .github/workflows/run-tests.yml
+      - bin/**/*
+      - package.json
+      - package-lock.json
+      - src/**/*
+      - tests/v12.test.js
+  pull_request:
+    paths:
+      - .docker/**/*
+      - .github/workflows/run-tests.yml
+      - bin/**/*
+      - package.json
+      - package-lock.json
+      - src/**/*
+      - tests/v12.test.js
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-compose-action@v1
+      - name: Build Docker images
+        run: docker compose up -d
+      - name: Install dependencies
+        run: docker compose exec client-v12 npm ci
+      - name: Run legacy test
+        run: docker compose exec client-v12 node tests/v12.test.js
