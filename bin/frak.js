@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
 import { execSync, spawn } from 'node:child_process';
-import { writeFileSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import * as ansi from '../src/ansi.js';
 import * as cli from '../src/cli.js';
 import config, { load as loadConfig } from '../src/config.js';
@@ -13,7 +14,9 @@ import humanize from '../src/humanize.js';
 import * as rsync from '../src/rsync.js';
 import * as ssh from '../src/ssh.js';
 import * as date from '../src/date.js';
-import packageJson from '../package.json' with { type: 'json' };
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /**
  * Try to load config. If it fails, print error message in red.
@@ -50,7 +53,9 @@ function usage() {
  * Print the current version
  */
 function version() {
-    console.log('Version:', packageJson.version);
+    const { version } = JSON.parse(readFileSync(path.join(__dirname, '../package.json')));
+
+    console.log('Version:', version);
 }
 
 /**
