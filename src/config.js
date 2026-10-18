@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import * as yaml from 'yaml';
+import yaml from 'yaml';
 
 // Cached config object. The config is stored in here so it can
 // be loaded once and imported across all modules.
