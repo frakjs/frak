@@ -13,6 +13,7 @@ import humanize from '../src/humanize.js';
 import * as rsync from '../src/rsync.js';
 import * as ssh from '../src/ssh.js';
 import * as date from '../src/date.js';
+import packageJson from '../package.json' with { type: 'json' };
 
 /**
  * Try to load config. If it fails, print error message in red.
@@ -39,6 +40,17 @@ function usage() {
     console.log('  pull          Download the remote file(s)');
     console.log('  push          Deploy website via rsync');
     console.log('  backups:list  List backups on the server');
+    console.log('');
+    console.log('Options:');
+    console.log('  --help        Display the command usage');
+    console.log('  --version     Show the current version');
+}
+
+/**
+ * Print the current version
+ */
+function version() {
+    console.log('Version:', packageJson.version);
 }
 
 /**
@@ -225,6 +237,8 @@ async function main(args) {
             });
 
         table.print();
+    } else if (command === '--version' || command === 'version') {
+        version();
     } else {
         usage();
 

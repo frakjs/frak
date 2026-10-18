@@ -297,4 +297,17 @@ suite('bin/frak.js', () => {
         assert.match(stdout, /^Usage: frak/);
         assert.strictEqual(code, 1);
     });
+
+    test('displays version', async () => {
+        let stdout = '';
+        const frak = spawn('node', ['bin/frak.js', '--version'], { cwd: './' });
+        const promise = new Promise((resolve) => frak.on('exit', (code) => resolve(code)));
+
+        frak.stdout.on('data', (data) => (stdout += data));
+
+        const code = await promise;
+
+        assert.match(stdout, /^Version: /);
+        assert.strictEqual(code, 0);
+    });
 });
