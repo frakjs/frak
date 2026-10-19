@@ -1,4 +1,5 @@
 import * as ansi from '../../src/ansi.js';
+import * as date from '../../src/date.js';
 import assert from 'node:assert';
 import fs from 'node:fs';
 import { spawn } from 'node:child_process';
@@ -249,12 +250,27 @@ suite('bin/frak.js', () => {
 
     suite('backups:list', () => {
         test('can list backups', async () => {
+            let stdout = '';
             const frak = spawn('node', ['/app/bin/frak.js', 'backups:list'], {
                 cwd: './tests/fixtures/example',
             });
             const promise = new Promise((resolve) => frak.on('exit', () => resolve()));
 
+            frak.stdout.on('data', (data) => (stdout += data));
+
             await promise;
+
+            const backupDate = new Date('2026-01-01T00:00:00.000Z');
+
+            const relative = date.relative(backupDate.getTime());
+
+            assert.strictEqual(
+                ansi.strip(stdout).trimEnd(),
+                fs
+                    .readFileSync('./tests/fixtures/backups-list.txt', 'utf-8')
+                    .trimEnd()
+                    .replace('[TIME]', `${relative}                       `.slice(0, 23))
+            );
         });
     });
 

@@ -200,7 +200,7 @@ async function main(args) {
             additions: `grep -e '^+' "$NAME"/*.patch | grep -v '^+++' | wc -l`,
             deletions: `grep -e '^-' "$NAME"/*.patch | grep -v '^---' | wc -l`,
         };
-        const ls = `stat --format='%Y %n' .backups/* | sort -r`;
+        const ls = `stat -c '%Y %n' .backups/* | sort -r`;
 
         const list = ssh.exec(
             `${ls} | xargs -I {} sh -c 'TIMESTAMP=$(echo {} | cut -d" " -f1); NAME=$(echo {} | cut -d" " -f2-); echo $TIMESTAMP${delimeter}$NAME${delimeter}$(${grep.additions})${delimeter}$(${grep.deletions})'`,
@@ -232,6 +232,7 @@ async function main(args) {
             .split(/\n/)
             .forEach((backup) => {
                 const [timestamp, name, additions, deletions] = backup.split(delimeter);
+                debug(backup);
                 table.row([
                     name.replace(/^.backups\//, ''),
                     date.relative(timestamp * 1000),
