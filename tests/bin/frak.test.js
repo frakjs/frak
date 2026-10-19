@@ -23,6 +23,8 @@ suite('bin/frak.js', () => {
                 stdout.trimEnd(),
                 ansi.green('Configuration file created: frak.config.js')
             );
+
+            assert(fs.existsSync(path.join(cwd, 'frak.config.js')));
         });
 
         test('cannot re-init', async () => {
@@ -80,13 +82,14 @@ suite('bin/frak.js', () => {
             const frak = spawn('node', ['/app/bin/frak.js', 'console', 'command=false'], {
                 cwd: './tests/fixtures/example',
             });
-            const promise = new Promise((resolve) => frak.on('exit', () => resolve()));
+            const promise = new Promise((resolve) => frak.on('exit', (code) => resolve(code)));
 
             frak.stdout.on('data', (data) => (stdout += data));
 
-            await promise;
+            const code = await promise;
 
             assert.strictEqual(stdout.trimEnd(), '');
+            assert.notStrictEqual(code, 0);
         });
     });
 

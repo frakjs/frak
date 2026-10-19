@@ -94,11 +94,13 @@ async function main(args) {
         try {
             const cmd = options.command || '\\$SHELL -l -i';
 
-            execSync(`ssh -t ${config.server} -- cd ${config.root} \\&\\& ${cmd}`, {
+            const code = execSync(`ssh -t ${config.server} -- cd ${config.root} \\&\\& ${cmd}`, {
                 stdio: 'inherit',
             });
         } catch (e) {
             debug(e);
+
+            process.exit(e.status || 1);
         }
     } else if (command === 'diff') {
         // Show the differences between local files and remote server
