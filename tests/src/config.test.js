@@ -11,7 +11,7 @@ suite('src/config.js', () => {
     test('returns null if it cannot locate a config', () => {
         assert.rejects(
             async () => await config.load(),
-            new Error('Config file not found! Try running frak init.'),
+            new Error('Config file not found! Try running frak init.')
         );
     });
 
@@ -116,9 +116,7 @@ suite('src/config.js', () => {
         test('throws error when environment is not found', async () => {
             assert.rejects(
                 async () => await config.load('production'),
-                new Error(
-                    'Missing configuration for environment "production"!',
-                ),
+                new Error('Missing configuration for environment "production"!')
             );
         });
     });
