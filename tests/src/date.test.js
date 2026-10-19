@@ -13,19 +13,31 @@ suite('src/date.js', () => {
         assert.equal(date.relative(new Date(Date.now() + 30 * 1000)), '30 seconds from now');
 
         // 15 minutes from now
-        assert.equal(date.relative(new Date(Date.now() + 15 * 60 * 1000 + 1000)), '15 minutes from now');
+        assert.equal(
+            date.relative(new Date(Date.now() + 15 * 60 * 1000 + 1000)),
+            '15 minutes from now'
+        );
 
         // 2 hours from now
-        assert.equal(date.relative(new Date(Date.now() + 2 * 60 * 60 * 1000 + 1000)), '2 hours from now');
+        assert.equal(
+            date.relative(new Date(Date.now() + 2 * 60 * 60 * 1000 + 1000)),
+            '2 hours from now'
+        );
 
         // 1 day from now
         assert.equal(date.relative(new Date(Date.now() + 24 * 60 * 60 * 1000)), '1 day from now');
 
         // 2 weeks from now
-        assert.equal(date.relative(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)), '2 weeks from now');
+        assert.equal(
+            date.relative(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)),
+            '2 weeks from now'
+        );
 
         // 1 month from now
-        assert.equal(date.relative(new Date(Date.now() + 31 * 24 * 60 * 60 * 1000)), '1 month from now');
+        assert.equal(
+            date.relative(new Date(Date.now() + 31 * 24 * 60 * 60 * 1000)),
+            '1 month from now'
+        );
 
         // Formatted, a.m.
         datetime = new Date('2022-01-01T10:00:00.000Z');
@@ -75,7 +87,10 @@ suite('src/date.js', () => {
         assert.equal(date.relative(new Date(Date.now() - 15 * 60 * 1000 - 1000)), '15 minutes ago');
 
         // 2 hours ago
-        assert.equal(date.relative(new Date(Date.now() - 2 * 60 * 60 * 1000 - 1000)), '2 hours ago');
+        assert.equal(
+            date.relative(new Date(Date.now() - 2 * 60 * 60 * 1000 - 1000)),
+            '2 hours ago'
+        );
 
         // 1 day ago
         assert.equal(date.relative(new Date(Date.now() - 24 * 60 * 60 * 1000)), '1 day ago');
