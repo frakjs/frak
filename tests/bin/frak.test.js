@@ -281,28 +281,30 @@ suite('bin/frak.js', () => {
     test('errors when load config fails', async () => {
         let stderr = '';
         const frak = spawn('node', ['bin/frak.js'], { cwd: './' });
-        const promise = new Promise((resolve) => frak.on('exit', () => resolve()));
+        const promise = new Promise((resolve) => frak.on('exit', (code) => resolve(code)));
 
         frak.stderr.on('data', (data) => (stderr += data));
 
-        await promise;
+        const code = await promise;
 
         assert.strictEqual(
             stderr.trimEnd(),
             ansi.red('Config file not found! Try running frak init.')
         );
+        assert.notStrictEqual(code, 0);
     });
 
     test('displays usage', async () => {
         let stdout = '';
         const frak = spawn('node', ['bin/frak.js', '--help'], { cwd: './' });
-        const promise = new Promise((resolve) => frak.on('exit', () => resolve()));
+        const promise = new Promise((resolve) => frak.on('exit', (code) => resolve(code)));
 
         frak.stdout.on('data', (data) => (stdout += data));
 
-        await promise;
+        const code = await promise;
 
         assert.match(stdout, /^Usage: frak/);
+        assert.strictEqual(code, 0);
     });
 
     test('displays usage and exits', async () => {
