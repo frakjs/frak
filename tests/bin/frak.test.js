@@ -202,6 +202,7 @@ suite('bin/frak.js', () => {
             ].join('\n');
 
             assert.strictEqual(ansi.strip(stdout).trimEnd(), expected);
+            assert.strictEqual(ansi.strip(stderr).trimEnd(), 'sh: xxx: not found');
         });
 
         test('works with legacy config', async () => {
