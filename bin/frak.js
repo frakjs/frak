@@ -94,7 +94,7 @@ async function main(args) {
         try {
             const cmd = options.command || '\\$SHELL -l -i';
 
-            const code = execSync(`ssh -t ${config.server} -- cd ${config.root} \\&\\& ${cmd}`, {
+            execSync(`ssh -t ${config.server} -- cd ${config.root} \\&\\& ${cmd}`, {
                 stdio: 'inherit',
             });
         } catch (e) {
