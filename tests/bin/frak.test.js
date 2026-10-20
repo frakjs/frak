@@ -9,6 +9,9 @@ import { tmpdir } from 'node:os';
 
 suite('bin/frak.js', () => {
     suite('init', () => {
+        /**
+         * Ensure that the  `init` command creates a configuration file in the current directory.
+         */
         test('can init', async () => {
             let stdout = '';
             const cwd = fs.mkdtempSync(path.join(tmpdir(), 'frak.'));
@@ -27,6 +30,9 @@ suite('bin/frak.js', () => {
             assert(fs.existsSync(path.join(cwd, 'frak.config.js')));
         });
 
+        /**
+         * Running `init` again will show a red error message.
+         */
         test('cannot re-init', async () => {
             let stderr = '';
             const frak = spawn('node', ['/app/bin/frak.js', 'init'], {
@@ -46,6 +52,9 @@ suite('bin/frak.js', () => {
     });
 
     suite('console', () => {
+        /**
+         * Run the `console` command with the `command=` option.
+         */
         test('can execute remote commands', async () => {
             let stdout = '';
             const frak = spawn('node', ['/app/bin/frak.js', 'console', 'command=echo test'], {
@@ -60,6 +69,10 @@ suite('bin/frak.js', () => {
             assert.notStrictEqual(stdout, 'test');
         });
 
+        /**
+         * Run the `console` command in an environment without a server option configured. An
+         * error should be thrown.
+         */
         test('console fails without server', async () => {
             let stderr = '';
             const frak = spawn('node', ['/app/bin/frak.js', 'console'], {
@@ -77,6 +90,9 @@ suite('bin/frak.js', () => {
             );
         });
 
+        /**
+         * The process should exit with a non-zero return value when the command fails.
+         */
         test('console fails when command fails', async () => {
             let stdout = '';
             const frak = spawn('node', ['/app/bin/frak.js', 'console', 'command=false'], {
@@ -94,6 +110,9 @@ suite('bin/frak.js', () => {
     });
 
     suite('push', () => {
+        /**
+         * Run a dry-run from the "example" fixture. Match the output to ./tests/fixtures/dry-run.txt.
+         */
         test('prompts to continue after dry run', async () => {
             let stdout = '';
             const frak = spawn('node', ['/app/bin/frak.js'], { cwd: './tests/fixtures/example' });
@@ -111,6 +130,9 @@ suite('bin/frak.js', () => {
             );
         });
 
+        /**
+         * Run the command with the `path=` option. Match the output to ./tests/fixtures/dry-run.path.txt.
+         */
         test('can specify path', async () => {
             let stdout = '';
             const frak = spawn(
@@ -132,6 +154,9 @@ suite('bin/frak.js', () => {
             );
         });
 
+        /**
+         * Run the command with the `ignore=` option. Match the output to ./tests/fixtures/dry-run.ignore.txt.
+         */
         test('can ignore files', async () => {
             let stdout = '';
             const frak = spawn('node', ['/app/bin/frak.js', 'ignore=new file'], {
@@ -151,6 +176,9 @@ suite('bin/frak.js', () => {
             );
         });
 
+        /**
+         * Run the command. Ensure that the "after" command ran successfully.
+         */
         test('runs command after push', async () => {
             let stdout = '';
             const frak = spawn('node', ['/app/bin/frak.js'], {
@@ -177,6 +205,10 @@ suite('bin/frak.js', () => {
             assert.strictEqual(ansi.strip(stdout).trimEnd(), expected);
         });
 
+        /**
+         * Run the command. The "after" config has an invalid command. There should be something
+         * on stderr.
+         */
         test('fails command after push', async () => {
             let stdout = '',
                 stderr = '';
@@ -205,6 +237,9 @@ suite('bin/frak.js', () => {
             assert.strictEqual(ansi.strip(stderr).trimEnd(), 'sh: xxx: not found');
         });
 
+        /**
+         * Ensure that the legacy (yaml) config functions properly.
+         */
         test('works with legacy config', async () => {
             let stdout = '';
             const frak = spawn('node', ['/app/bin/frak.js'], {
@@ -232,6 +267,10 @@ suite('bin/frak.js', () => {
     });
 
     suite('pull', () => {
+        /**
+         * Ensure the pull command works with a `path=` option. Compare output
+         * against ./tests/fixtures/dry-run.pull.txt.
+         */
         test('can pull', async () => {
             let stdout = '';
             const frak = spawn('node', ['/app/bin/frak.js', 'path=updated\\ file', 'pull'], {
@@ -253,6 +292,10 @@ suite('bin/frak.js', () => {
     });
 
     suite('backups:list', () => {
+        /**
+         * Backups are able to be listed. Need to ensure the relative date is replaced in the
+         * output fixture.
+         */
         test('can list backups', async () => {
             let stdout = '';
             const frak = spawn('node', ['/app/bin/frak.js', 'backups:list'], {
@@ -278,6 +321,9 @@ suite('bin/frak.js', () => {
         });
     });
 
+    /**
+     * When the config is not found, throws a red error and exit code is non-zero.
+     */
     test('errors when load config fails', async () => {
         let stderr = '';
         const frak = spawn('node', ['bin/frak.js'], { cwd: './' });
@@ -294,6 +340,9 @@ suite('bin/frak.js', () => {
         assert.notStrictEqual(code, 0);
     });
 
+    /**
+     * The command usage output is displayed when the `--help` option is in the command.
+     */
     test('displays usage', async () => {
         let stdout = '';
         const frak = spawn('node', ['bin/frak.js', '--help'], { cwd: './' });
@@ -307,6 +356,9 @@ suite('bin/frak.js', () => {
         assert.strictEqual(code, 0);
     });
 
+    /**
+     * When the command is unknown, usage is displayed and a non-zero exit code is returned.
+     */
     test('displays usage and exits', async () => {
         let stdout = '';
         const frak = spawn('node', ['bin/frak.js', 'unknown'], { cwd: './' });
@@ -320,6 +372,9 @@ suite('bin/frak.js', () => {
         assert.strictEqual(code, 1);
     });
 
+    /**
+     * The version is properly displayed for the `--version` option.
+     */
     test('displays version', async () => {
         let stdout = '';
         const frak = spawn('node', ['bin/frak.js', '--version'], { cwd: './' });

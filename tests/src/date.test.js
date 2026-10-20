@@ -3,6 +3,9 @@ import * as date from '../../src/date.js';
 import test, { suite } from 'node:test';
 
 suite('src/date.js', () => {
+    /**
+     * Format a number of dates as relative dates.
+     */
     test('can generate relative date', () => {
         let datetime;
 
