@@ -2,6 +2,7 @@ import * as ansi from './ansi.js';
 
 export default function humanize(changes) {
     return changes
+        .replace(/^created directory .*\n/g, '')
         .replace(/cL\+\+\+\+\+\+\+\+\+/g,   ansi.blue('New Link   '))
         .replace(/<f\+\+\+\+\+\+\+\+\+/g,  ansi.green('New File   '))
         .replace(/>f\+\+\+\+\+\+\+\+\+/g,  ansi.green('New File   '))

@@ -16,6 +16,7 @@ export default async function diff(dryRunOutput, options) {
     const changes = dryRunOutput
         .split(/\r?\n/)
         .filter(Boolean)
+        .filter((line) => !/^created directory .*/.test(line))
         .map((line) => {
             // Split line into action and file, preserving whitespace for filenames
             const [action, ...parts] = line.split(/\s+/);
