@@ -117,7 +117,7 @@ export default async function diff(dryRunOutput, options) {
             '--',
             'tarball=$(mktemp /tmp/frak-diff-tarball.XXXXXX);',
             'cat > $tarball;',
-            `cd ${config.root};`,
+            `if [ -d "${config.root}" ] ; then cd "${config.root}"; else cd $(mktemp -d /tmp/frak-fake-root.XXXXXX) ; fi ;`,
             diffs.join('; '),
             ';',
             'rm $tarball',
