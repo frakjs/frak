@@ -1,5 +1,11 @@
 import * as ansi from './ansi.js';
 
+/**
+ * Convert rsync itemized changes to human-friendly strings (ANSI colors).
+ *
+ * @param {String} changes
+ * @returns {String}
+ */
 export default function humanize(changes) {
     return changes
         .replace(/cL\+\+\+\+\+\+\+\+\+/g,   ansi.blue('New Link   '))

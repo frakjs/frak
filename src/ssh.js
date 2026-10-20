@@ -1,6 +1,17 @@
 import { spawn } from 'node:child_process';
 import debug from './debug.js';
 
+/**
+ * Execute a command on a remote server.
+ *
+ * @param {String} command
+ * @param {{
+ *     quiet: Boolean,
+ *     root: String,
+ *     server: String
+ * }} [options={}]
+ * @returns {Promise & { stderr: Readable, stdout: Readable }}
+ */
 export function exec(command, options = {}) {
     debug({ command });
 

@@ -4,6 +4,13 @@ import yaml from 'yaml';
 
 // Cached config object. The config is stored in here so it can
 // be loaded once and imported across all modules.
+/**
+ * @type {{
+ *     after: String,
+ *     root: String,
+ *     server: String,
+ * }}
+ */
 let config = {};
 
 /**

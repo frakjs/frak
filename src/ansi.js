@@ -1,3 +1,4 @@
+// Raw ANSI control codes
 const ansi = {
     CLEAR: '\u001b[0m',
     BOLD: '\u001b[1m',
@@ -14,6 +15,12 @@ const ansi = {
     WHITE: '\u001b[37m',
 };
 
+/**
+ * The strip function replaces all ANSI control sequences, resulting in
+ * a plain text string.
+ *
+ * @returns {String}
+ */
 export function strip(string) {
     return `${string}`
         .replace(new RegExp(ansi.CLEAR.replace('[', '\\['), 'g'), '')
@@ -30,46 +37,79 @@ export function strip(string) {
         .replace(new RegExp(ansi.WHITE.replace('[', '\\['), 'g'), '');
 }
 
+/**
+ * @returns {String}
+ */
 export function bold(string) {
     return `${ansi.BOLD}${string}${ansi.CLEAR}`;
 }
 
+/**
+ * @returns {String}
+ */
 export function underline(string) {
     return `${ansi.UNDERLINE}${string}${ansi.CLEAR}`;
 }
 
+/**
+ * @returns {String}
+ */
 export function black(string) {
     return `${ansi.BLACK}${string}${ansi.CLEAR}`;
 }
 
+/**
+ * @returns {String}
+ */
 export function gray(string) {
     return `${ansi.GRAY}${string}${ansi.CLEAR}`;
 }
 
+/**
+ * @returns {String}
+ */
 export function red(string) {
     return `${ansi.RED}${string}${ansi.CLEAR}`;
 }
 
+/**
+ * @returns {String}
+ */
 export function green(string) {
     return `${ansi.GREEN}${string}${ansi.CLEAR}`;
 }
 
+/**
+ * @returns {String}
+ */
 export function yellow(string) {
     return `${ansi.YELLOW}${string}${ansi.CLEAR}`;
 }
 
+/**
+ * @returns {String}
+ */
 export function blue(string) {
     return `${ansi.BLUE}${string}${ansi.CLEAR}`;
 }
 
+/**
+ * @returns {String}
+ */
 export function magenta(string) {
     return `${ansi.MAGENTA}${string}${ansi.CLEAR}`;
 }
 
+/**
+ * @returns {String}
+ */
 export function cyan(string) {
     return `${ansi.CYAN}${string}${ansi.CLEAR}`;
 }
 
+/**
+ * @returns {String}
+ */
 export function white(string) {
     return `${ansi.WHITE}${string}${ansi.CLEAR}`;
 }
