@@ -2,6 +2,8 @@ FROM alpine:latest
 
 RUN apk add --no-cache bash openssh openssh-server rsync shadow
 
+RUN apk add --no-cache nodejs npm
+
 RUN chsh root -s /bin/bash
 
 RUN mkdir -p /var/run/sshd

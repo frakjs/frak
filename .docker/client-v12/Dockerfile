@@ -15,4 +15,5 @@ WORKDIR /app
 
 VOLUME [ "/app" ]
 
-ENTRYPOINT ["tail", "-f", "/dev/null"]
+# Loop that immediately exits when it receives a SIGTERM or SIGINT
+CMD ["sh", "-c", "trap 'exit 0' TERM INT; while true; do sleep 1; done"]

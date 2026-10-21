@@ -8,6 +8,8 @@ import * as ansi from './ansi.js';
  */
 export default function humanize(changes) {
     return changes
+        .replace(/(^|\n)created directory .*\n/g, '$1')
+        .replace(/(^|\n)cannot delete non-empty directory: .*\n/g, '$1')
         .replace(/cL\+\+\+\+\+\+\+\+\+/g,   ansi.blue('New Link   '))
         .replace(/<f\+\+\+\+\+\+\+\+\+/g,  ansi.green('New File   '))
         .replace(/>f\+\+\+\+\+\+\+\+\+/g,  ansi.green('New File   '))

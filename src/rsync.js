@@ -14,16 +14,7 @@ export function filters() {
     const { options } = parse(process.argv.slice(2));
     const filters = [];
     const includes = [];
-    const excludes = [
-        '.frak*',
-        '.git*',
-        '.svn*',
-        '.tags*',
-        'frak.config.js',
-        'Capfile',
-        'Gemfile*',
-        'Vagrantfile*',
-    ];
+    const excludes = ['/.frak', '/.frakignore', '/.git/', '/.svn/', '/frak.config.js'];
 
     // merge excludes via commandline
     if (options.ignore) {
