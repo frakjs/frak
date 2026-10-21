@@ -208,7 +208,7 @@ export default async function diff(dryRunOutput, options) {
             });
         } else {
             /* node:coverage disable */
-            return await new Promise((resolve) => {
+            return await new Promise((resolve, reject) => {
                 let diff = '';
 
                 ssh.stdout.on('data', (data) => (diff += data));
