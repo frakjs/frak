@@ -1,7 +1,8 @@
 import { spawn } from 'node:child_process';
-import { statSync } from 'node:fs';
+import { existsSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import * as ansi from './ansi.js';
 import * as cli from './cli.js';
+import * as crypto from './crypto.js';
 import config from './config.js';
 import debug from './debug.js';
 
@@ -17,6 +18,7 @@ export default async function diff(dryRunOutput, options) {
         .split(/\r?\n/)
         .filter(Boolean)
         .filter((line) => !/^created directory .*/.test(line))
+        .filter((line) => !/^cannot delete non-empty directory:.*/.test(line))
         .map((line) => {
             // Split line into action and file, preserving whitespace for filenames
             const [action, ...parts] = line.split(/\s+/);
@@ -53,7 +55,7 @@ export default async function diff(dryRunOutput, options) {
         return Promise.reject('Process canceled by user');
     }
 
-    const files = changes.map(([, file]) => file);
+    const files = changes.map(([, file]) => file).filter((file) => existsSync(file));
 
     const diffs = changes
         .sort((a, b) => a[1].localeCompare(b[1]))
@@ -110,18 +112,41 @@ export default async function diff(dryRunOutput, options) {
     if (diffs.length > 0) {
         debug({ diffs, files });
 
+        const diffsScriptFilename = `.frak-diffs-${crypto.sha256(Date.now())}.sh`;
+
+        writeFileSync(`/tmp/${diffsScriptFilename}`, diffs.join(';'));
+
         // Tarball the local files up to the server
-        const tar = spawn('tar', ['cz', ...files]);
+        const tar = spawn('tar', ['cz', ...files, `/tmp/${diffsScriptFilename}`]);
+
+        // Handle tar errors
+        tar.on('error', (error) => {
+            throw error;
+        });
+
+        // Cleanup the diffs script
+        tar.on('exit', () => {
+            unlinkSync(`/tmp/${diffsScriptFilename}`);
+        });
+
+        // Run ssh, it takes the tarball through stdin, and expands it inline to generate diffs.
         const ssh = spawn('ssh', [
             config.server,
             '--',
+            // Save the incoming tarball to /tmp
             'tarball=$(mktemp /tmp/frak-diff-tarball.XXXXXX);',
             'cat > $tarball;',
-            `if [ -d "${config.root}" ] ; then cd "${config.root}"; else cd $(mktemp -d /tmp/frak-fake-root.XXXXXX) ; fi ;`,
-            diffs.join('; '),
-            ';',
-            'rm $tarball',
+            process.env.DEBUG ? 'tar tf $tarball;' : '',
+            // Fixes missing root directory by jumping to an empty /tmp folder
+            `if [ -d "${config.root}" ] ; then cd "${config.root}"; else fakeroot=$(mktemp -d /tmp/frak-fake-root.XXXXXX); cd $fakeroot; fi ;`,
+            `eval $(cat <(tar xzOf $tarball "tmp/${diffsScriptFilename}"));`,
+            // Clean up the tarball
+            'rm $tarball;',
+            // Clean up the fake root fix
+            'if [ -d "$fakeroot" ] ; then rmdir "$fakeroot" ; fi',
         ]);
+
+        // Pipe the tar output to SSH
         tar.stdout.pipe(ssh.stdin);
 
         let less;
@@ -192,6 +217,10 @@ export default async function diff(dryRunOutput, options) {
 
                 ssh.on('exit', () => {
                     resolve(diff);
+                });
+
+                ssh.on('error', (error) => {
+                    reject(error);
                 });
             });
             /* node:coverage enable */
