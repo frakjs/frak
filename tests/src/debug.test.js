@@ -1,29 +1,31 @@
 import assert from 'node:assert';
 import debug from '../../src/debug.js';
-import test, { after, before, suite } from 'node:test';
+import test, { afterEach, beforeEach, suite } from 'node:test';
 import * as ansi from '../../src/ansi.js';
 
 suite('src/debug.js', () => {
     let output = '';
     let env = {};
 
-    before(() => {
+    beforeEach(() => {
         console.log = ((original) => {
-            const log = function() {
+            const log = function () {
                 output += Array.prototype.join.call(arguments, ' ');
-            }
+            };
 
             log.restore = () => {
                 console.log = original;
-            }
+            };
 
             return log;
         })(console.log);
 
+        output = '';
+
         env = process.env;
     });
 
-    after(() => {
+    afterEach(() => {
         console.log.restore();
         process.env = env;
     });

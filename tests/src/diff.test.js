@@ -8,13 +8,13 @@ import test, { afterEach, beforeEach, suite } from 'node:test';
 suite('src/diff.js', () => {
     let output = '';
 
-    beforeEach(function() {
+    beforeEach(function () {
         console.log = ((original) => {
-            let log = function() {
-                output += ([].join.call(arguments, ' '));
+            let log = function () {
+                output += [].join.call(arguments, ' ');
             };
 
-            log.restore = function() {
+            log.restore = function () {
                 console.log = original;
             };
 
@@ -24,7 +24,7 @@ suite('src/diff.js', () => {
         output = '';
     });
 
-    afterEach(function() {
+    afterEach(function () {
         console.log.restore();
     });
 
@@ -43,36 +43,48 @@ suite('src/diff.js', () => {
     suite('example project', () => {
         test('outputs diff when there are changes', async () => {
             let stdout = '';
-            const frak = spawn('node', ['../../../bin/frak.js', 'diff'], { cwd: './tests/fixtures/example' });
+            const frak = spawn('node', ['../../../bin/frak.js', 'diff'], {
+                cwd: './tests/fixtures/example',
+            });
             const promise = new Promise((resolve) => frak.on('exit', () => resolve()));
 
-            frak.stdout.on('data', data => stdout += data);
+            frak.stdout.on('data', (data) => (stdout += data));
 
             await promise;
 
             assert.notStrictEqual(stdout, ansi.strip(stdout));
-            assert.strictEqual(ansi.strip(stdout), fs.readFileSync('./tests/fixtures/patch.diff', 'utf-8'));
+            assert.strictEqual(
+                ansi.strip(stdout),
+                fs.readFileSync('./tests/fixtures/patch.diff', 'utf-8')
+            );
         });
 
         test('outputs diff when there are changes (no color)', async () => {
             let stdout = '';
-            const frak = spawn('node', ['../../../bin/frak.js', '--no-color', 'diff'], { cwd: './tests/fixtures/example' });
+            const frak = spawn('node', ['../../../bin/frak.js', '--no-color', 'diff'], {
+                cwd: './tests/fixtures/example',
+            });
             const promise = new Promise((resolve) => frak.on('exit', () => resolve()));
 
-            frak.stdout.on('data', data => stdout += data);
+            frak.stdout.on('data', (data) => (stdout += data));
 
             await promise;
 
             assert.strictEqual(stdout, ansi.strip(stdout));
-            assert.strictEqual(ansi.strip(stdout), fs.readFileSync('./tests/fixtures/patch.diff', 'utf-8'));
+            assert.strictEqual(
+                ansi.strip(stdout),
+                fs.readFileSync('./tests/fixtures/patch.diff', 'utf-8')
+            );
         });
 
         test('prompts when there are more than 50 changes', async () => {
             let stdout = '';
-            const frak = spawn('node', ['../../../bin/frak.js', 'diff'], { cwd: './tests/fixtures/example.50' });
+            const frak = spawn('node', ['../../../bin/frak.js', 'diff'], {
+                cwd: './tests/fixtures/example.50',
+            });
             const promise = new Promise((resolve) => frak.on('exit', () => resolve()));
 
-            frak.stdout.on('data', data => stdout += data);
+            frak.stdout.on('data', (data) => (stdout += data));
             frak.stdin.write('no');
 
             await promise;

@@ -1,4 +1,5 @@
 import * as ansi from '../../src/ansi.js';
+import * as date from '../../src/date.js';
 import assert from 'node:assert';
 import fs from 'node:fs';
 import { spawn } from 'node:child_process';
@@ -22,6 +23,8 @@ suite('bin/frak.js', () => {
                 stdout.trimEnd(),
                 ansi.green('Configuration file created: frak.config.js')
             );
+
+            assert(fs.existsSync(path.join(cwd, 'frak.config.js')));
         });
 
         test('cannot re-init', async () => {
@@ -79,13 +82,14 @@ suite('bin/frak.js', () => {
             const frak = spawn('node', ['/app/bin/frak.js', 'console', 'command=false'], {
                 cwd: './tests/fixtures/example',
             });
-            const promise = new Promise((resolve) => frak.on('exit', () => resolve()));
+            const promise = new Promise((resolve) => frak.on('exit', (code) => resolve(code)));
 
             frak.stdout.on('data', (data) => (stdout += data));
 
-            await promise;
+            const code = await promise;
 
             assert.strictEqual(stdout.trimEnd(), '');
+            assert.notStrictEqual(code, 0);
         });
     });
 
@@ -198,6 +202,7 @@ suite('bin/frak.js', () => {
             ].join('\n');
 
             assert.strictEqual(ansi.strip(stdout).trimEnd(), expected);
+            assert.strictEqual(ansi.strip(stderr).trimEnd(), 'sh: xxx: not found');
         });
 
         test('works with legacy config', async () => {
@@ -249,40 +254,57 @@ suite('bin/frak.js', () => {
 
     suite('backups:list', () => {
         test('can list backups', async () => {
+            let stdout = '';
             const frak = spawn('node', ['/app/bin/frak.js', 'backups:list'], {
                 cwd: './tests/fixtures/example',
             });
             const promise = new Promise((resolve) => frak.on('exit', () => resolve()));
 
+            frak.stdout.on('data', (data) => (stdout += data));
+
             await promise;
+
+            const backupDate = new Date('2026-01-01T00:00:00.000Z');
+
+            const relative = date.relative(backupDate.getTime());
+
+            assert.strictEqual(
+                ansi.strip(stdout).trimEnd(),
+                fs
+                    .readFileSync('./tests/fixtures/backups-list.txt', 'utf-8')
+                    .trimEnd()
+                    .replace('[TIME]', `${relative}                       `.slice(0, 23))
+            );
         });
     });
 
     test('errors when load config fails', async () => {
         let stderr = '';
         const frak = spawn('node', ['bin/frak.js'], { cwd: './' });
-        const promise = new Promise((resolve) => frak.on('exit', () => resolve()));
+        const promise = new Promise((resolve) => frak.on('exit', (code) => resolve(code)));
 
         frak.stderr.on('data', (data) => (stderr += data));
 
-        await promise;
+        const code = await promise;
 
         assert.strictEqual(
             stderr.trimEnd(),
             ansi.red('Config file not found! Try running frak init.')
         );
+        assert.notStrictEqual(code, 0);
     });
 
     test('displays usage', async () => {
         let stdout = '';
         const frak = spawn('node', ['bin/frak.js', '--help'], { cwd: './' });
-        const promise = new Promise((resolve) => frak.on('exit', () => resolve()));
+        const promise = new Promise((resolve) => frak.on('exit', (code) => resolve(code)));
 
         frak.stdout.on('data', (data) => (stdout += data));
 
-        await promise;
+        const code = await promise;
 
         assert.match(stdout, /^Usage: frak/);
+        assert.strictEqual(code, 0);
     });
 
     test('displays usage and exits', async () => {

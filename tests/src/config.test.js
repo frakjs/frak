@@ -8,14 +8,14 @@ suite('src/config.js', () => {
         config.reset();
     });
 
-    test('returns null if it cannot locate a config', () => {
+    test('thows if it cannot load a config', () => {
         assert.rejects(
             async () => await config.load(),
-            new Error('Config file not found! Try running frak init.'),
+            new Error('Config file not found! Try running frak init.')
         );
     });
 
-    test('thows if it cannot load a config', () => {
+    test('returns null if it cannot locate a config', () => {
         const located = config.locate();
 
         assert.equal(located, null);
@@ -116,9 +116,7 @@ suite('src/config.js', () => {
         test('throws error when environment is not found', async () => {
             assert.rejects(
                 async () => await config.load('production'),
-                new Error(
-                    'Missing configuration for environment "production"!',
-                ),
+                new Error('Missing configuration for environment "production"!')
             );
         });
     });
