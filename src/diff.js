@@ -130,20 +130,26 @@ export default async function diff(dryRunOutput, options) {
         });
 
         // Run ssh, it takes the tarball through stdin, and expands it inline to generate diffs.
+        // Don't forget, each command after the -- needs to end in a semicolon (;).
         const ssh = spawn('ssh', [
             config.server,
             '--',
             // Save the incoming tarball to /tmp
-            'tarball=$(mktemp /tmp/frak-diff-tarball.XXXXXX);',
+            'export tarball=$(mktemp /tmp/frak-diff-tarball.XXXXXX);',
             'cat > $tarball;',
+            // Save the diffs script to the /tmp folder
+            `tar xzOf $tarball "tmp/${diffsScriptFilename}" > /tmp/${diffsScriptFilename};`,
             process.env.DEBUG ? 'tar tf $tarball;' : '',
             // Fixes missing root directory by jumping to an empty /tmp folder
             `if [ -d "${config.root}" ] ; then cd "${config.root}"; else fakeroot=$(mktemp -d /tmp/frak-fake-root.XXXXXX); cd $fakeroot; fi ;`,
-            `eval $(cat <(tar xzOf $tarball "tmp/${diffsScriptFilename}"));`,
+            // Run the diffs script
+            `sh /tmp/${diffsScriptFilename};`,
+            // Clean up diffs script
+            `rm /tmp/${diffsScriptFilename};`,
             // Clean up the tarball
             'rm $tarball;',
             // Clean up the fake root fix
-            'if [ -d "$fakeroot" ] ; then rmdir "$fakeroot" ; fi',
+            'if [ -d "$fakeroot" ] ; then rmdir "$fakeroot" ; fi;',
         ]);
 
         // Pipe the tar output to SSH
