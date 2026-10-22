@@ -4,6 +4,8 @@ RUN apk add --no-cache bash openssh openssh-server rsync shadow
 
 RUN apk add --no-cache nodejs npm
 
+RUN apk add --no-cache composer php85 php85-session php85-fileinfo php85-tokenizer php85-dom php85-pdo php85-pdo_sqlite
+
 RUN chsh root -s /bin/bash
 
 RUN mkdir -p /var/run/sshd
