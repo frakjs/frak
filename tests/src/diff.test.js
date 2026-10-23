@@ -8,6 +8,10 @@ import test, { afterEach, beforeEach, suite } from 'node:test';
 suite('src/diff.js', () => {
     let output = '';
 
+    /**
+     * Spy on console.log to capture its output without writing to the stdout
+     * of the test process. Clear the output variable before each test runs.
+     */
     beforeEach(function () {
         console.log = ((original) => {
             let log = function () {
@@ -24,16 +28,25 @@ suite('src/diff.js', () => {
         output = '';
     });
 
+    /**
+     * Restore the console.log spy
+     */
     afterEach(function () {
         console.log.restore();
     });
 
+    /**
+     * A yellow "no changes detected" message should appear when there are no changes in the diff.
+     */
     test('displays message when there are no changes', async () => {
         await diff('');
 
         assert.equal(output, ansi.yellow('No changes detected.'));
     });
 
+    /**
+     * Run an empty diff in non-interactive mode. Assert there is no output.
+     */
     test('does nothing when there are no changes in non-interactive mode', async () => {
         await diff('', { interactive: false });
 
@@ -41,6 +54,9 @@ suite('src/diff.js', () => {
     });
 
     suite('example project', () => {
+        /**
+         * Run the diff command in the example project. Match the output to tests/fixtures/patch.diff.
+         */
         test('outputs diff when there are changes', async () => {
             let stdout = '';
             const frak = spawn('node', ['../../../bin/frak.js', 'diff'], {
@@ -59,6 +75,9 @@ suite('src/diff.js', () => {
             );
         });
 
+        /**
+         * Run the diff command with a --no-color flag. Output should not have ANSI codes.
+         */
         test('outputs diff when there are changes (no color)', async () => {
             let stdout = '';
             const frak = spawn('node', ['../../../bin/frak.js', '--no-color', 'diff'], {
@@ -77,6 +96,10 @@ suite('src/diff.js', () => {
             );
         });
 
+        /**
+         * Run the diff command in a project with more than 50 changed files. It should prompt
+         * before running the comparison.
+         */
         test('prompts when there are more than 50 changes', async () => {
             let stdout = '';
             const frak = spawn('node', ['../../../bin/frak.js', 'diff'], {

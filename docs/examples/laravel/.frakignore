@@ -1,0 +1,29 @@
+- /.env
+
+# Order is important
++ /bootstrap/cache/.gitignore
+- /bootstrap/cache/*
+
+- /database/*.sqlite
+- /phpunit.xml
+
+# Order is important
++ /storage/app/private/.gitignore
+- /storage/app/private/*
++ /storage/app/public/.gitignore
+- /storage/app/public/*
++ /storage/app/framework/cache/data/.gitignore
+- /storage/app/framework/cache/data/*
++ /storage/app/framework/cache/locks/.gitignore
+- /storage/app/framework/cache/locks/*
++ /storage/app/framework/sessions/.gitignore
+- /storage/app/framework/sessions/*
++ /storage/app/framework/testing/.gitignore
+- /storage/app/framework/testing/*
++ /storage/app/framework/views/.gitignore
+- /storage/app/framework/views/*
++ /storage/logs/.gitignore
+- /storage/logs/*
+
+- /tests/
+- /vendor/

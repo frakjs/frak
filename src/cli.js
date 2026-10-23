@@ -1,10 +1,24 @@
 import * as ansi from './ansi.js';
 
 /**
+ * @typedef {Object} CommandOptions
+ *
+ * @property {Boolean} colorize
+ * @property {String}  command
+ * @property {String}  env
+ * @property {String}  ignore
+ * @property {Boolean} interactive
+ * @property {String}  path
+ */
+
+/**
  * Parse the arguments into command and options.
  *
  * @param {Array} args
- * @returns {{command: String, options: Object}}
+ * @returns {{
+ *     command: 'backups:list'|'console'|'help'|'pull'|'push'|'version',
+ *     options: CommandOptions
+ * }}
  */
 export function parse(args) {
     let command = 'push';
@@ -29,6 +43,14 @@ export function parse(args) {
     return { command, options };
 }
 
+/**
+ * Prompt the user with a string, returns a promise that resolves true/false.
+ *
+ * @param {String} string
+ * @param {Object} [options={}]
+ * @param {import('node:stream').Readable} [options.stdin]
+ * @param {import('node:stream').Writable} [options.stdout]
+ */
 export async function agree(string, { stdin = null, stdout = null } = {}) {
     stdout = stdout || process.stdout;
     stdin = stdin || process.stdin;
@@ -42,16 +64,35 @@ export async function agree(string, { stdin = null, stdout = null } = {}) {
     return ['y', 'yes'].includes(`${answer}`.trim().toLowerCase());
 }
 
+/**
+ * Build an ASCI table using column/row definitions.
+ */
 export class Table {
+    /**
+     * Define a table first by its columns.
+     *
+     * @param {Array<{header: String, width: Number}>} columns
+     */
     constructor(columns) {
         this.columns = columns;
         this.rows = [];
     }
 
+    /**
+     * Push a row onto the table.
+     *
+     * @param {Array<any>} cells
+     * @returns void
+     */
     row(cells) {
         this.rows.push(cells);
     }
 
+    /**
+     * Outputs the table to the console.
+     *
+     * @returns void
+     */
     print() {
         const { border, header } = this.columns.reduce(({ header, border }, column, i) => {
             const width = ansi.strip(column.header).length;
