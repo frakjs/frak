@@ -32,9 +32,9 @@ export function parse(args) {
         } else if (arg === '--no-color') {
             options.colorize = false;
         } else if (arg.includes('=')) {
-            const [option, value] = arg.split('=', 2);
+            const [option, ...value] = arg.split('=');
 
-            options[option] = value;
+            options[option] = value.join('=');
         } else {
             command = arg;
         }

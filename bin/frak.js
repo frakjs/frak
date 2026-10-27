@@ -121,8 +121,18 @@ async function main(args) {
         // Push or pull changes to remote server
         await tryLoadConfig(options.env);
 
-        // Execute dry-run
-        const { output } = await rsync.exec('--dry-run');
+        let output;
+
+        try {
+            // Execute dry-run
+            const result = await rsync.exec('--dry-run');
+
+            output = result.output;
+        } catch (e) {
+            console.log(e);
+
+            process.exit(1);
+        }
 
         debug({ output });
 
