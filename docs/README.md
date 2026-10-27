@@ -6,13 +6,13 @@ Frak.js is designed to run with minimal dependencies. You can run it directly vi
 npx @frakjs/frak --help
 ```
 
-![screenshot](../images/screenshot.png)
+[![screenshot][product-screenshot]](<>)
 
 ```sh
 npx @frakjs/frak init
 ```
 
-![frak-init-screenshot](../images/frak-init-screenshot.png)
+[![frak-init-screenshot][init-screenshot]](<>)
 
 ## Configuration
 
@@ -140,3 +140,6 @@ npx @frakjs/frak
 | `env=[string]`    | Specify which environment to load from `frak.config.js`. |
 | `ignore=[string]` | A space-separated list of files/folders to ignore.       |
 | `path=[string]`   | A space-separated list of files/folders to include.      |
+
+[product-screenshot]: ../images/screenshots/screenshot.png
+[init-screenshot]: ../images/screenshots/frak-init-screenshot.png
