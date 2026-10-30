@@ -6,6 +6,17 @@ import * as crypto from './crypto.js';
 import config from './config.js';
 import debug from './debug.js';
 
+/**
+ * Computes a unified diff based on the dry-run output and command options. Invokes a single
+ * round-trip to the server, sending a tarball of the files in the dry-run and piping through
+ * a collection of diff commands on the server.
+ *
+ * @param {String} dryRunOutput
+ * @param {{
+ *     interactive: Boolean,
+ *     colorize: Boolean,
+ * }} options
+ */
 export default async function diff(dryRunOutput, options) {
     // Default options
     options = {

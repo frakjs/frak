@@ -65,6 +65,7 @@ export function filters() {
  * @param {String} source
  * @param {String} destination
  * @param {Object} options
+ * @returns {Promise<{output: String, backupPath: String>}
  */
 export function exec(...options) {
     // Get the current command

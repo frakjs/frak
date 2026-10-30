@@ -1,6 +1,7 @@
 <a id="readme-top"></a>
 
 <!-- PROJECT SHIELDS -->
+
 [![Contributors][contributors-shield]][contributors-url]
 [![Forks][forks-shield]][forks-url]
 [![Stargazers][stars-shield]][stars-url]
@@ -47,9 +48,8 @@
   </ol>
 </details>
 
-
-
 <!-- ABOUT THE PROJECT -->
+
 ## About The Project
 
 [![Product Name Screen Shot][product-screenshot]](https://frakjs.com)
@@ -71,6 +71,7 @@ It leverages `rsync` over SSH to push files to a remote server, and is able to v
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- GETTING STARTED -->
+
 ## Getting Started
 
 Using **`frak`** is simple. All you need is a [Node.js](https://nodejs.org) environment with `npx`.
@@ -80,16 +81,15 @@ Using **`frak`** is simple. All you need is a [Node.js](https://nodejs.org) envi
 Make sure you have Node.js and `npx` installed.
 
 ```bash
-node --version
-npm --version
 npx --version
 ```
 
-[![Node.js and NPM Screenshot][prerequisites-screenshot]]()
+[![Node.js and NPM Screenshot][prerequisites-screenshot]](<>)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- USAGE EXAMPLES -->
+
 ## Usage
 
 The recommended way to run **`frak`** is via the `npx` command.
@@ -113,14 +113,14 @@ cd project-folder
 npx @frakjs/frak init
 ```
 
-[![frak init][frak-init-screenshot]]()
+[![frak init][frak-init-screenshot]](<>)
 
 This creates a `frak.config.js` file that looks something like this:
 
 ```js
 export default {
-    server: "user@example.com",
-    root: "/var/www/html",
+    server: 'user@example.com',
+    root: '/var/www/html',
 };
 ```
 
@@ -142,9 +142,12 @@ npx @frakjs/frak diff
 
 The command above will compare all the changes, and present a colorful git-style patch that you can inspect in your terminal.
 
+For more thorough documentation, see [docs/README.md](./docs/README.md)
+
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- ROADMAP -->
+
 ## Roadmap
 
 - [ ] Send an alert via Slack after push events
@@ -155,6 +158,7 @@ See the [open issues](https://github.com/frakjs/frak/issues) for a full list of 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- CONTRIBUTING -->
+
 ## Contributing
 
 Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
@@ -177,6 +181,7 @@ Don't forget to give the project a star! Thanks again!
 </a>
 
 <!-- LICENSE -->
+
 ## License
 
 Distributed under the MIT License. See `LICENSE.txt` for more information.
@@ -184,6 +189,7 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- CONTACT -->
+
 ## Contact
 
 Frank Strube - [@strube](https://x.com/strube) - contact@frakjs.com
@@ -194,6 +200,7 @@ Project Link: [https://github.com/frakjs/frak](https://github.com/frakjs/frak)
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
+
 [contributors-shield]: https://img.shields.io/github/contributors/frakjs/frak.svg?style=for-the-badge
 [contributors-url]: https://github.com/frakjs/frak/graphs/contributors
 [forks-shield]: https://img.shields.io/github/forks/frakjs/frak.svg?style=for-the-badge

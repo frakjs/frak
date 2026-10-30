@@ -6,6 +6,9 @@ import stream from 'node:stream';
 import test, { after, before, beforeEach, suite } from 'node:test';
 
 suite('src/cli.js', () => {
+    /**
+     * Parse an empty command.
+     */
     test('default command is "push"', () => {
         const { command, options } = cli.parse([]);
 
@@ -13,6 +16,9 @@ suite('src/cli.js', () => {
         assert.deepStrictEqual(options, { colorize: true });
     });
 
+    /**
+     * Issue a command with some arguments.
+     */
     test('can parse commandline arguments', () => {
         const args = 'pull ignore=test arg=another'.split(' ');
         const { command, options } = cli.parse(args);
@@ -21,6 +27,9 @@ suite('src/cli.js', () => {
         assert.deepStrictEqual(options, { arg: 'another', colorize: true, ignore: 'test' });
     });
 
+    /**
+     * Send a command twice, the second one should take over.
+     */
     test('can override command', () => {
         const args = 'pull ignore=test arg=another diff'.split(' ');
         const { command, options } = cli.parse(args);
@@ -30,6 +39,9 @@ suite('src/cli.js', () => {
         assert.deepStrictEqual(options, { arg: 'another', colorize: true, ignore: 'test' });
     });
 
+    /**
+     * Call cli.agree() and check that it returns true when "yes" is given.
+     */
     test('can prompt for agreement (yes)', async () => {
         let output = '';
         const stdin = new stream.Readable.from('yes');
@@ -49,6 +61,9 @@ suite('src/cli.js', () => {
         assert.equal(result, true);
     });
 
+    /**
+     * Call cli.agree() and check that it returns false when "no" is given.
+     */
     test('can prompt for agreement (no)', async () => {
         let output = '';
         const stdin = new stream.Readable.from('no');
@@ -71,6 +86,9 @@ suite('src/cli.js', () => {
     suite('Table', () => {
         let output = [];
 
+        /**
+         * Spy on console.log, accumulating in an array.
+         */
         before(function () {
             console.log = ((original) => {
                 let log = function () {
@@ -85,14 +103,23 @@ suite('src/cli.js', () => {
             })(console.log);
         });
 
+        /**
+         * Clear the output array before each test.
+         */
         beforeEach(function () {
             output = [];
         });
 
+        /**
+         * Restore the spy when all tests are finished.
+         */
         after(function () {
             console.log.restore();
         });
 
+        /**
+         * Construct a table using the cli.Table() class.
+         */
         test('can output a table', () => {
             const table = new cli.Table([
                 { header: 'A', width: 5 },

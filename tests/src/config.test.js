@@ -4,10 +4,16 @@ import path from 'node:path';
 import test, { afterEach, beforeEach, suite } from 'node:test';
 
 suite('src/config.js', () => {
+    /**
+     * Reset the config before each test, so that changes don't leak across tests.
+     */
     beforeEach(() => {
         config.reset();
     });
 
+    /**
+     * When a config is not found, an error is thrown.
+     */
     test('thows if it cannot load a config', () => {
         assert.rejects(
             async () => await config.load(),
@@ -15,6 +21,9 @@ suite('src/config.js', () => {
         );
     });
 
+    /**
+     * When a config is not located, null is returned.
+     */
     test('returns null if it cannot locate a config', () => {
         const located = config.locate();
 
@@ -24,14 +33,24 @@ suite('src/config.js', () => {
     suite('legacy project', () => {
         const originalDirectory = process.cwd();
 
+        /**
+         * After each test, change dir back to the original directory, so that changes
+         * are not leaked across tests.
+         */
         afterEach(() => {
             process.chdir(originalDirectory);
         });
 
+        /**
+         * Every test should run from the example.legacy project.
+         */
         beforeEach(() => {
             process.chdir('./tests/fixtures/example.legacy');
         });
 
+        /**
+         * The .frak file can be located.
+         */
         test('can locate a config', () => {
             const expected = path.resolve(process.cwd(), '.frak');
             const located = config.locate();
@@ -39,6 +58,9 @@ suite('src/config.js', () => {
             assert.equal(located, expected);
         });
 
+        /**
+         * Load the .frak file and parse it.
+         */
         test('can load a config', async () => {
             const loaded = await config.load();
 
@@ -52,6 +74,9 @@ suite('src/config.js', () => {
             });
         });
 
+        /**
+         * Load a specific environment in the config.
+         */
         test('can load a config environment', async () => {
             const loaded = await config.load('staging');
 
@@ -65,14 +90,24 @@ suite('src/config.js', () => {
     suite('example project', () => {
         const originalDirectory = process.cwd();
 
+        /**
+         * After each test, change dir back to the original directory, so that changes
+         * are not leaked across tests.
+         */
         afterEach(() => {
             process.chdir(originalDirectory);
         });
 
+        /**
+         * Every test should run from the example.legacy project.
+         */
         beforeEach(() => {
             process.chdir('./tests/fixtures/example');
         });
 
+        /**
+         * The frak.config.js file can be located.
+         */
         test('can locate a config', () => {
             const expected = path.resolve(process.cwd(), 'frak.config.js');
             const located = config.locate();
@@ -80,6 +115,9 @@ suite('src/config.js', () => {
             assert.equal(located, expected);
         });
 
+        /**
+         * Load the frak.config.js file and parse it.
+         */
         test('can load a config', async () => {
             const loaded = await config.load();
 
@@ -92,6 +130,9 @@ suite('src/config.js', () => {
             });
         });
 
+        /**
+         * The loaded config can be accessed at `config.default`.
+         */
         test('loading config updates imported config', async () => {
             await config.load();
 
@@ -104,6 +145,9 @@ suite('src/config.js', () => {
             });
         });
 
+        /**
+         * Load the staging environment in the frak.config.js file.
+         */
         test('can load a config environment', async () => {
             const loaded = await config.load('staging');
 
@@ -113,6 +157,9 @@ suite('src/config.js', () => {
             });
         });
 
+        /**
+         * Try to load an environment that isn't defined.
+         */
         test('throws error when environment is not found', async () => {
             assert.rejects(
                 async () => await config.load('production'),

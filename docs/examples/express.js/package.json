@@ -1,0 +1,13 @@
+{
+    "name": "example",
+    "version": "1.0.0",
+    "private": true,
+    "type": "module",
+    "main": "app.js",
+    "scripts": {
+        "start": "npx pm2 reload app.js --name example-app --update-env"
+    },
+    "dependencies": {
+        "express": "^5.3.0"
+    }
+}

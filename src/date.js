@@ -1,7 +1,20 @@
+/**
+ * A small helper function to determine the plural version of a noun.
+ *
+ * @param {String} string
+ * @param {Number} value
+ * @returns {String}
+ */
 function plural(string, value) {
     return `${string}${value === 1 ? '' : 's'}`;
 }
 
+/**
+ * Compute a relative date string from now (e.g. two seconds ago).
+ *
+ * @param {String} date
+ * @returns {String}
+ */
 export function relative(date) {
     const datetime = new Date(date);
     const now = new Date();
