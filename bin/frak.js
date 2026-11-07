@@ -92,7 +92,7 @@ async function main(args) {
         }
 
         try {
-            const cmd = options.command || '\\$SHELL -l -i';
+            const cmd = `sh -c "${options.command.replace(/"/g, '\\"')}"` || '\\$SHELL -l -i';
 
             execSync(`ssh -t ${config.server} -- cd ${config.root} \\&\\& ${cmd}`, {
                 stdio: 'inherit',
