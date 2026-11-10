@@ -93,16 +93,16 @@ async function main(args) {
         try {
             const cmd = options.command
                 ? `${sudo_command()} sh -c "${options.command}"`
-                : `${sudo_command()} -E $SHELL -i`;
+                : `${sudo_command()} $SHELL -i`;
 
             debug(
-                `ssh -t ${config.server} -- ` +
-                    `cd ${config.root} && ${cmd}`.replace(/([&|$"\\])/g, '\\$1')
+                `ssh -t ${config.server} -- "` +
+                    `cd ${config.root} && ${cmd.replace(/([&|$"\\])/g, '\\$1')}"`
             );
 
             execSync(
-                `ssh -t ${config.server} -- ` +
-                    `cd ${config.root} && ${cmd}`.replace(/([&|$"\\])/g, '\\$1'),
+                `ssh -t ${config.server} -- "` +
+                    `cd ${config.root} && ${cmd.replace(/([&|$"\\])/g, '\\$1')}"`,
                 {
                     stdio: 'inherit',
                 }

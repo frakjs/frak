@@ -39,15 +39,13 @@ export function rsync_path() {
  */
 export function sudo_command() {
     const askpass = config.password
-        ? `export SUDO_ASKPASS=~/.tmp/frak-ask-pass; mkdir -p ~/.tmp; echo '#!/bin/sh\necho ${config.password}; rm $0' > ~/.tmp/frak-ask-pass; chmod +x ~/.tmp/frak-ask-pass; chmod +x ~/.tmp/frak-ask-pass;`
+        ? `export SUDO_ASKPASS=~/.tmp/frak-ask-pass; mkdir -p ~/.tmp; echo '#!/bin/sh\necho ${config.password}; rm $0' > ~/.tmp/frak-ask-pass; chmod +x ~/.tmp/frak-ask-pass;`
         : '';
 
     if (config.become === true) {
-        // return `${config.password ? `echo ${config.password} | ` : ''}sudo --prompt="" ${config.password ? ' -S' : ''} `;
-        return `${askpass}sudo --prompt= ${config.password ? ' -A' : ''} `;
+        return `${askpass} sudo --prompt= ${config.password ? ' -A' : ''} `;
     } else if (config.become) {
-        // return `${config.password ? `echo ${config.password} | ` : ''}sudo --prompt="" ${config.password ? ' -S' : ''} -u ${config.become}`;
-        return `${askpass}sudo -u ${config.become} --prompt= ${config.password ? ' -A' : ''} `;
+        return `${askpass} sudo -u ${config.become} --prompt= ${config.password ? ' -A' : ''} `;
     } else {
         return '';
     }
