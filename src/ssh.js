@@ -1,11 +1,8 @@
 import { spawn } from 'node:child_process';
-import fs, { mkdirSync } from 'node:fs';
-import { homedir, tmpdir } from 'node:os';
-import path, { dirname } from 'node:path';
-import * as cli from './cli.js';
+import { mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
 import config from './config.js';
 import debug from './debug.js';
-import { stdout } from 'node:process';
 
 export const controlPath = `${process.env.HOME}/.ssh/control/frak-%C`;
 

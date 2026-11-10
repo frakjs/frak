@@ -285,11 +285,9 @@ suite('bin/frak.js', () => {
 
             await promise;
 
-            const expected = [].join('\n');
-
             assert.match(
                 ansi.strip(stdout),
-                /-rw-r--r--    1 guest    users .* file/,
+                /-rw-r--r-- {4}1 guest {4}users .* file/,
                 'Missing file owned by guest.'
             );
         });

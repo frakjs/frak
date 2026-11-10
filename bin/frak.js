@@ -10,7 +10,6 @@ import config, { load as loadConfig, sudo_command } from '../src/config.js';
 import { sha256 } from '../src/crypto.js';
 import debug from '../src/debug.js';
 import diff from '../src/diff.js';
-import humanize from '../src/humanize.js';
 import * as rsync from '../src/rsync.js';
 import * as ssh from '../src/ssh.js';
 import * as date from '../src/date.js';
@@ -149,12 +148,12 @@ async function main(args) {
         process.on('exit', async () => {
             debug('closing control socket');
 
-            await control.close().catch((e) => console.error(ansi.red(e.message ?? e)));
+            await control.close().catch((e) => console.error(ansi.red(e.message || e)));
         });
 
         // Execute dry-run
         const result = await rsync.exec({ humanize: true, options: ['--dry-run'] }).catch((e) => {
-            console.log(ansi.red(e.message ?? e));
+            console.log(ansi.red(e.message || e));
 
             process.exit(1);
         });
@@ -174,7 +173,7 @@ async function main(args) {
             .agree(
                 ansi.yellow('The above actions will be taken. Continue? (This cannot be undone): ')
             )
-            .catch((e) => console.error);
+            .catch(console.error);
 
         if (!proceed) {
             process.exit(1);
@@ -262,7 +261,7 @@ async function main(args) {
         process.on('exit', async () => {
             debug('closing control socket');
 
-            await control.close().catch((e) => console.error(ansi.red(e.message ?? e)));
+            await control.close().catch((e) => console.error(ansi.red(e.message || e)));
         });
 
         const delimeter = '------Separator--';

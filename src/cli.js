@@ -63,7 +63,7 @@ export async function agree(string, { stdin = null, stdout = null } = {}) {
         stdin.once('data', (data) => {
             resolve(data);
         });
-    }).catch((e) => console.error);
+    }).catch(console.error);
 
     return ['y', 'yes'].includes(`${answer}`.trim().toLowerCase());
 }
