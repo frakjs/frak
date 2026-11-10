@@ -57,9 +57,13 @@ export async function agree(string, { stdin = null, stdout = null } = {}) {
 
     stdout.write(string);
 
+    stdin.resume();
+
     const answer = await new Promise((resolve) => {
-        stdin.once('data', (data) => resolve(data));
-    });
+        stdin.once('data', (data) => {
+            resolve(data);
+        });
+    }).catch((e) => console.error);
 
     return ['y', 'yes'].includes(`${answer}`.trim().toLowerCase());
 }

@@ -196,9 +196,11 @@ suite('bin/frak.js', () => {
                 'Run command: echo test',
                 '',
                 'The above actions will be taken. Continue? (This cannot be undone): ',
-                '',
+                // No line-break here, stdin echos the line-break when pressing ENTER
                 'Executing commands on remote server.',
+                '',
                 'test',
+                '',
                 'Deployment complete.',
             ].join('\n');
 
@@ -228,13 +230,18 @@ suite('bin/frak.js', () => {
                 'Run command: xxx',
                 '',
                 'The above actions will be taken. Continue? (This cannot be undone): ',
-                '',
+                // No line-break here, stdin echos the line-break when pressing ENTER
                 'Executing commands on remote server.',
+                '',
+                '',
                 'Deployment complete.',
             ].join('\n');
 
             assert.strictEqual(ansi.strip(stdout).trimEnd(), expected);
-            assert.strictEqual(ansi.strip(stderr).trimEnd(), 'sh: xxx: not found');
+            assert.strictEqual(
+                ansi.strip(stderr).trimEnd(),
+                'sh: xxx: not found\nexited with code 127'
+            );
         });
 
         /**
@@ -263,6 +270,28 @@ suite('bin/frak.js', () => {
             ].join('\n');
 
             assert.strictEqual(ansi.strip(stdout).trimEnd(), expected);
+        });
+
+        test('can become another user', async () => {
+            let stdout = '';
+            const frak = spawn('node', ['/app/bin/frak.js', 'env=guest'], {
+                cwd: './tests/fixtures/example.become',
+            });
+            const promise = new Promise((resolve) => frak.on('exit', () => resolve()));
+
+            frak.stdout.on('data', (data) => (stdout += data));
+            frak.stderr.on('data', (data) => (stdout += data));
+            frak.stdin.write('yes');
+
+            await promise;
+
+            const expected = [].join('\n');
+
+            assert.match(
+                ansi.strip(stdout),
+                /-rw-r--r--    1 guest    users .* file/,
+                'Missing file owned by guest.'
+            );
         });
     });
 
