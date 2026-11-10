@@ -2,8 +2,9 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { parse } from './cli.js';
-import config, { locate as locateConfig } from './config.js';
+import config, { locate as locateConfig, rsync_path } from './config.js';
 import debug from './debug.js';
+import humanize from './humanize.js';
 
 let backupPath = null;
 
@@ -67,7 +68,7 @@ export function filters() {
  * @param {Object} options
  * @returns {Promise<{output: String, backupPath: String>}
  */
-export function exec(...options) {
+export function exec(options = {}) {
     // Get the current command
     const { command, options: commandOptions } = parse(process.argv.slice(2));
     let source, destination;
@@ -109,6 +110,7 @@ export function exec(...options) {
             '--no-owner',
             '--no-perms',
             '--no-times',
+            '-e "ssh -t"',
             '--human-readable',
             '--compress',
             '--checksum',
@@ -116,10 +118,10 @@ export function exec(...options) {
             '--recursive',
             '--delete',
             process.env.DEBUG ? '--rsh=ssh' : '--rsh=ssh -q',
-            `--rsync-path=${config['rsync_path'] ? config['rsync_path'] : 'rsync'}`,
+            `--rsync-path=${rsync_path()}`,
             '--filter=. -',
             ...backup,
-            ...options,
+            ...(options.options || []),
             source,
             destination,
         ],
@@ -140,6 +142,11 @@ export function exec(...options) {
 
     rsync.stdout.on('data', (data) => {
         output += `${data}`;
+
+        if (options.humanize) {
+            const humanized = humanize(`${data}`);
+            humanized && console.log(humanized.trim());
+        }
     });
     rsync.stderr.on('data', (data) => {
         stderr += `${data}`;

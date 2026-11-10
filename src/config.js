@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import yaml from 'yaml';
+import * as cli from './cli.js';
 
 // Cached config object. The config is stored in here so it can
 // be loaded once and imported across all modules.
@@ -9,9 +10,46 @@ import yaml from 'yaml';
  *     after: String,
  *     root: String,
  *     server: String,
+ *     become: String | Boolean,
  * }}
  */
 let config = {};
+
+/**
+ * Determine the rsync path from the config. In this order:
+ *
+ * 1. if rsync_path is declared in config
+ * 2. if become is declared, use sudo_command
+ * 3. otherwise, just plain rsync
+ */
+export function rsync_path() {
+    if ('rsync_path' in config) {
+        return config.rsync_path;
+    }
+
+    if (config.become) {
+        return `${sudo_command()} rsync`;
+    }
+
+    return 'rsync';
+}
+
+/**
+ * Determine the sudo_command to use, based on config.become.
+ */
+export function sudo_command() {
+    const askpass = config.password
+        ? `export SUDO_ASKPASS=~/.tmp/frak-ask-pass; mkdir -p ~/.tmp; echo '#!/bin/sh\necho ${config.password}; rm $0' > ~/.tmp/frak-ask-pass; chmod +x ~/.tmp/frak-ask-pass;`
+        : '';
+
+    if (config.become === true) {
+        return `${askpass} sudo --prompt= ${config.password ? ' -A' : ''} `;
+    } else if (config.become) {
+        return `${askpass} sudo -u ${config.become} --prompt= ${config.password ? ' -A' : ''} `;
+    } else {
+        return '';
+    }
+}
 
 /**
  * Locate a config file in the current working directory or its parents.
@@ -66,6 +104,11 @@ export async function load(env = null) {
         config.root = config.remote_path;
 
         delete config.remote_path;
+    }
+
+    // Prompt for password if become is true
+    if (config.become && process.stdin.isTTY) {
+        config.password = await cli.password('[sudo] password: ');
     }
 
     return config;

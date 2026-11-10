@@ -1,6 +1,6 @@
 FROM alpine:latest
 
-RUN apk add --no-cache bash openssh openssh-server rsync shadow
+RUN apk add --no-cache bash openssh openssh-server rsync shadow sudo
 
 RUN apk add --no-cache nodejs npm
 
@@ -11,6 +11,10 @@ RUN chsh root -s /bin/bash
 RUN mkdir -p /var/run/sshd
 
 RUN mkdir -p /var/www/html
+
+RUN mkdir -p /var/www/become
+
+RUN chown guest /var/www/become
 
 COPY root/.ssh /root/.ssh
 

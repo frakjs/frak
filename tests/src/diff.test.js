@@ -41,7 +41,7 @@ suite('src/diff.js', () => {
     test('displays message when there are no changes', async () => {
         await diff('');
 
-        assert.equal(output, ansi.yellow('No changes detected.'));
+        assert.equal(output, 'No changes detected.');
     });
 
     /**

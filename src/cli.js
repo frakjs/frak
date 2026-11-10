@@ -57,11 +57,74 @@ export async function agree(string, { stdin = null, stdout = null } = {}) {
 
     stdout.write(string);
 
+    stdin.resume();
+
     const answer = await new Promise((resolve) => {
-        stdin.on('data', (data) => resolve(data));
-    });
+        stdin.once('data', (data) => {
+            resolve(data);
+        });
+    }).catch(console.error);
 
     return ['y', 'yes'].includes(`${answer}`.trim().toLowerCase());
+}
+
+/**
+ * Prompt the user, but don't echo as they type.
+ *
+ * @param {String} prompt
+ * @param {Object} [options={}]
+ * @param {import('node:stream').Readable} [options.stdin]
+ * @param {import('node:stream').Writable} [options.stdout]
+ */
+export async function password(prompt, { stdin = null, stdout = null } = {}) {
+    stdout = stdout || process.stdout;
+    stdin = stdin || process.stdin;
+
+    stdout.write(prompt);
+
+    stdin.setRawMode(true);
+    stdin.resume();
+    stdin.setEncoding('utf8');
+
+    return await new Promise((resolve) => {
+        let password = '';
+
+        const handler = (data) => {
+            if (data === '\u000d' || data === '\u000a') {
+                cleanup();
+                stdout.write('\n');
+                resolve(password);
+
+                return;
+            }
+
+            // Handle Ctrl+C (Interrupt)
+            if (data === '\u0003') {
+                cleanup();
+                stdout.write('\n');
+                process.exit(130);
+            }
+
+            // Handle Backspace (\u007f or \u0008)
+            if (data === '\u007f' || data === '\u0008') {
+                if (password.length > 0) {
+                    password = password.slice(0, -1);
+                }
+                return;
+            }
+
+            // Append standard printable characters
+            password += data;
+        };
+
+        const cleanup = () => {
+            stdin.removeListener('data', handler);
+            stdin.setRawMode(false);
+            stdin.pause();
+        };
+
+        stdin.on('data', handler);
+    });
 }
 
 /**

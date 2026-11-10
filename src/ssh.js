@@ -1,5 +1,48 @@
 import { spawn } from 'node:child_process';
+import { mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
+import config from './config.js';
 import debug from './debug.js';
+
+export const controlPath = `${process.env.HOME}/.ssh/control/frak-%C`;
+
+/**
+ * Establish a control master socket for the SSH connections
+ */
+export async function control() {
+    debug('establishing control master');
+
+    mkdirSync(dirname(controlPath), { recursive: true });
+
+    const ssh = spawn(
+        'ssh',
+        [
+            '-o ControlMaster=yes',
+            '-o ControlPersist=no',
+            `-o ControlPath=${controlPath}`,
+            config.server,
+        ],
+        {
+            stdio: ['pipe', 'pipe', 'pipe'],
+        }
+    );
+
+    const close = () => {
+        return new Promise((resolve, reject) => {
+            ssh.on('exit', (code) =>
+                code === 0 ? resolve(true) : reject(`exited with code ${code}`)
+            );
+            ssh.stdin.write('exit\n');
+        });
+    };
+
+    return {
+        close: async () => await close(),
+        stdout: ssh.stdout,
+        stdin: ssh.stdin,
+        stderr: ssh.stderr,
+    };
+}
 
 /**
  * Execute a command on a remote server.
@@ -15,9 +58,21 @@ import debug from './debug.js';
 export function exec(command, options = {}) {
     debug({ command });
 
-    const cmd = `cd ${options.root || '.'}; sh`;
+    let cmd;
 
-    const ssh = spawn('ssh', [options.server, '--', cmd]);
+    if (options.sudo_command) {
+        cmd = `cd ${options.root || '.'}; ${options.sudo_command} sh`;
+    } else {
+        cmd = `cd ${options.root || '.'}; sh`;
+    }
+
+    const ssh = spawn('ssh', [
+        '-o ControlMaster=auto',
+        `-o ControlPath=${controlPath}`,
+        options.server,
+        '--',
+        cmd,
+    ]);
 
     // const echo = spawn('echo', [ command ]);
 
