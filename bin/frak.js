@@ -63,6 +63,7 @@ function version() {
  */
 async function main(args) {
     const { command, options } = cli.parse(args.slice(2));
+    let control;
 
     debug('parsed:', { command, options });
 
@@ -106,13 +107,7 @@ async function main(args) {
         await tryLoadConfig(options.env);
 
         // Establish ssh control master
-        const control = await ssh.control();
-
-        process.on('exit', async () => {
-            debug('closing control socket');
-
-            await control.close().catch((error) => console.error(ansi.red(error.message || error)));
-        });
+        control = await ssh.control();
 
         try {
             const { output } = await rsync.exec({ options: ['--dry-run'] });
@@ -132,13 +127,7 @@ async function main(args) {
         let output;
 
         // Establish ssh control master
-        const control = await ssh.control();
-
-        process.on('exit', async () => {
-            debug('closing control socket');
-
-            await control.close().catch((e) => console.error(ansi.red(e.message || e)));
-        });
+        control = await ssh.control();
 
         // Execute dry-run
         const result = await rsync.exec({ humanize: true, options: ['--dry-run'] }).catch((e) => {
@@ -256,13 +245,7 @@ async function main(args) {
         await tryLoadConfig(options.env);
 
         // Establish ssh control master
-        const control = await ssh.control();
-
-        process.on('exit', async () => {
-            debug('closing control socket');
-
-            await control.close().catch((e) => console.error(ansi.red(e.message || e)));
-        });
+        control = await ssh.control();
 
         const delimeter = '------Separator--';
         const grep = {
@@ -326,6 +309,12 @@ async function main(args) {
         if (command !== '--help') {
             process.exit(1);
         }
+    }
+
+    if (control) {
+        debug('closing control socket');
+
+        await control.close().catch((error) => console.error(ansi.red(error.message || error)));
     }
 
     process.exit(0);

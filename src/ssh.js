@@ -4,13 +4,142 @@ import { dirname } from 'node:path';
 import config from './config.js';
 import debug from './debug.js';
 
-export const controlPath = `${process.env.HOME}/.ssh/control/frak-%C`;
+export const controlPath = `${process.env.HOME}/.ssh/control/frak-%C-${process.pid}`;
+
+const CONTROL_CHECK_INTERVAL_MS = 100;
+const CONTROL_CHECK_TIMEOUT_MS = 10000;
 
 /**
  * Quote a value for a POSIX shell.
  */
 function quote(value) {
     return `'${String(value).replace(/'/g, `'\\''`)}'`;
+}
+
+/**
+ * Wait until ssh -O check can use the control master socket. Clients that are
+ * started before the master has finished creating it can emit a
+ * "ControlSocket ... already exists" warning and disable multiplexing.
+ *
+ * @param {ChildProcess} ssh The process that owns the control master
+ * @returns {Promise}
+ */
+async function waitForControlMaster(ssh) {
+    debug('waiting for control master socket');
+
+    return new Promise((resolve, reject) => {
+        let activeCheck;
+        let retryTimer;
+        let timeoutTimer;
+        let finished = false;
+        let masterExited = false;
+        let masterError = null;
+        let lastError = '';
+
+        const finish = (error) => {
+            if (finished) {
+                return;
+            }
+
+            finished = true;
+            clearTimeout(retryTimer);
+            clearTimeout(timeoutTimer);
+
+            if (activeCheck && !activeCheck.killed) {
+                activeCheck.kill();
+            }
+
+            ssh.removeListener('exit', onExit);
+            ssh.removeListener('error', onError);
+
+            if (error) {
+                reject(error instanceof Error ? error : new Error(String(error)));
+            } else {
+                debug('control master socket is ready');
+                resolve();
+            }
+        };
+
+        const scheduleCheck = () => {
+            clearTimeout(retryTimer);
+            retryTimer = setTimeout(runCheck, CONTROL_CHECK_INTERVAL_MS);
+        };
+
+        const runCheck = () => {
+            if (finished) {
+                return;
+            }
+
+            if (masterError) {
+                finish(masterError);
+                return;
+            }
+
+            if (masterExited) {
+                finish('control master exited before its socket was ready');
+                return;
+            }
+
+            let attemptDone = false;
+            let stderr = '';
+
+            const check = child_process.spawn(
+                'ssh',
+                ['-O', 'check', '-S', controlPath, config.server],
+                {
+                    stdio: ['ignore', 'ignore', 'pipe'],
+                }
+            );
+
+            activeCheck = check;
+            check.stderr.on('data', (data) => (stderr += `${data}`));
+
+            const done = (code, error) => {
+                if (attemptDone || finished) {
+                    return;
+                }
+
+                attemptDone = true;
+
+                if (activeCheck === check) {
+                    activeCheck = undefined;
+                }
+
+                if (code === 0) {
+                    finish();
+                } else {
+                    lastError =
+                        (error && error.message) ||
+                        stderr.trim() ||
+                        `ssh -O check exited with code ${code}`;
+                    scheduleCheck();
+                }
+            };
+
+            check.on('error', (error) => done(null, error));
+            check.on('close', (code) => done(code));
+        };
+
+        const onExit = (code) => {
+            masterExited = true;
+            finish(new Error(`control master exited with code ${code} before its socket was ready`));
+        };
+
+        const onError = (error) => {
+            masterError = error;
+            finish(error);
+        };
+
+        ssh.on('exit', onExit);
+        ssh.on('error', onError);
+
+        timeoutTimer = setTimeout(() => {
+            const detail = lastError ? `: ${lastError}` : '';
+            finish(new Error(`timed out waiting for control master socket${detail}`));
+        }, CONTROL_CHECK_TIMEOUT_MS);
+
+        runCheck();
+    });
 }
 
 /**
@@ -34,14 +163,65 @@ export async function control() {
         }
     );
 
+    let exited = false;
+    let exitCode = null;
+    let exitError = null;
+    let closeRequested = false;
+    let closePromise;
+
+    ssh.on('error', (error) => (exitError = error));
+    ssh.on('exit', (code) => {
+        exited = true;
+        exitCode = code;
+    });
+
     const close = () => {
-        return new Promise((resolve, reject) => {
-            ssh.on('exit', (code) =>
-                code === 0 ? resolve(true) : reject(`exited with code ${code}`)
-            );
-            ssh.stdin.write('exit\n');
+        if (closePromise) {
+            return closePromise;
+        }
+
+        closePromise = new Promise((resolve, reject) => {
+            const finish = (code) => (code === 0 ? resolve(true) : reject(`exited with code ${code}`));
+
+            if (exitError) {
+                reject(exitError);
+                return;
+            }
+
+            if (exited) {
+                finish(exitCode);
+                return;
+            }
+
+            const onExit = (code) => {
+                ssh.removeListener('error', onError);
+                finish(code);
+            };
+
+            const onError = (error) => {
+                ssh.removeListener('exit', onExit);
+                reject(error);
+            };
+
+            closeRequested = true;
+            ssh.once('exit', onExit);
+            ssh.once('error', onError);
+
+            if (ssh.stdin.writable) {
+                ssh.stdin.write('exit\n');
+            }
         });
+
+        return closePromise;
     };
+
+    process.once('exit', () => {
+        if (!closeRequested && !exited && ssh.stdin.writable) {
+            ssh.stdin.write('exit\n');
+        }
+    });
+
+    await waitForControlMaster(ssh);
 
     // Sudo authentication is handled by the command that actually needs it
     // (the rsync wrapper or sudo_command()), so there is no "sudo -v" warm-up
