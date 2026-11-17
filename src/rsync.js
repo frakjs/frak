@@ -1,7 +1,6 @@
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { parse } from './cli.js';
 import config, { locate as locateConfig } from './config.js';
 import debug from './debug.js';
@@ -9,8 +8,6 @@ import humanize from './humanize.js';
 import * as ssh from './ssh.js';
 
 let backupPath = null;
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /**
  * Generate rsync filters.
@@ -72,7 +69,7 @@ export function filters() {
  * @param {Object} options
  * @returns {Promise<{output: String, backupPath: String>}
  */
-export function exec(options = {}) {
+export async function exec(options = {}) {
     // Get the current command
     const { command, options: commandOptions } = parse(process.argv.slice(2));
     let source, destination;
@@ -106,9 +103,27 @@ export function exec(options = {}) {
         backup = [...backup, '--backup', `--backup-dir=${backupPath}`];
     }
 
-    const wrapperCommand = config.become
-        ? path.resolve(__dirname, '../bin/frak-ssh-wrapper')
-        : `ssh -o ControlMaster=auto -o ControlPath=${ssh.controlPath}`;
+    const rshCommand = `ssh -o ControlMaster=auto -o ControlPath=${ssh.controlPath}`;
+
+    let authDir = null;
+    let rsyncPath = null;
+
+    if (config.become) {
+        const becomeUser = config.become === true ? '' : String(config.become);
+
+        if (becomeUser && !/^[A-Za-z0-9._-]+$/.test(becomeUser)) {
+            throw new Error(`Invalid become user: ${becomeUser}`);
+        }
+
+        authDir = await ssh.createSudoAuth(config.password, config);
+        const userArgs = becomeUser ? `-u ${ssh.quote(becomeUser)}` : '';
+
+        rsyncPath = [
+            `SUDO_ASKPASS=${ssh.quote(`${authDir}/askpass`)}`,
+            `sudo -A -p '' -k ${userArgs}`.trim(),
+            'rsync',
+        ].join(' ');
+    }
 
     const args = [
         'rsync',
@@ -118,14 +133,14 @@ export function exec(options = {}) {
             '--no-owner',
             '--no-perms',
             '--no-times',
-            `--rsh=${wrapperCommand}`,
+            `--rsh=${rshCommand}`,
+            ...(rsyncPath ? [`--rsync-path=${rsyncPath}`] : []),
             '--human-readable',
             '--compress',
             '--checksum',
             '--itemize-changes',
             '--recursive',
             '--delete',
-            // `--rsync-path=${rsync_path()}`,
             '--filter=. -',
             ...backup,
             ...(options.options || []),
@@ -134,12 +149,6 @@ export function exec(options = {}) {
         ],
         {
             stdio: ['pipe', 'pipe', 'pipe', 'pipe'],
-            env: {
-                ...process.env,
-                SSH_CONTROL_PATH: ssh.controlPath,
-                // The remote rsync should run as this user (empty means root).
-                FRAK_BECOME: config.become === true ? 'root' : config.become || '',
-            },
         },
     ];
 
@@ -150,7 +159,7 @@ export function exec(options = {}) {
     let output = '',
         stderr = '';
 
-    return new Promise((resolve, reject) => {
+    const promise = new Promise((resolve, reject) => {
         const echo = spawn('echo', [filters().join('\n')]);
 
         const rsync = spawn.apply(null, args);
@@ -186,17 +195,24 @@ export function exec(options = {}) {
             }
         });
 
-        // Write the password on named-pipe 3. Use an empty line when no
-        // password was collected (non-TTY), so the wrapper never sends the
-        // literal string "undefined" to sudo.
-        if (config.become) {
-            rsync.stdio[3].end(`${config.password || ''}\n`);
-        }
-
-        // Write the filters to stdin
+        // Write the filters to stdin. The sudo password is sent through a
+        // separate SSH connection into a private remote file, so rsync's stdin
+        // contains only protocol data.
         echo.stdout.pipe(rsync.stdin);
         // rsync.stdin.write(filters().join('\n'));
 
         debug('wrote stdin');
+    });
+
+    if (!authDir) {
+        return promise;
+    }
+
+    return promise.finally(async () => {
+        try {
+            await ssh.removeSudoAuth(authDir, config);
+        } catch (error) {
+            debug('failed to remove remote sudo auth directory', error);
+        }
     });
 }

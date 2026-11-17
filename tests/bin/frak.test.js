@@ -281,14 +281,15 @@ suite('bin/frak.js', () => {
 
             frak.stdout.on('data', (data) => (stdout += data));
             frak.stderr.on('data', (data) => (stdout += data));
-            frak.stdin.write('yes');
+            // Approve the dry-run prompt.
+            frak.stdin.end('yes\n');
 
             await promise;
 
             assert.match(
                 ansi.strip(stdout),
                 /-rw-r--r-- {4}1 guest {4}users .* file/,
-                'Missing file owned by guest.'
+                `Missing file owned by guest. Output: ${ansi.strip(stdout)}`
             );
         });
     });

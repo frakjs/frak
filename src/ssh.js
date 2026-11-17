@@ -12,8 +12,89 @@ const CONTROL_CHECK_TIMEOUT_MS = 10000;
 /**
  * Quote a value for a POSIX shell.
  */
-function quote(value) {
+export function quote(value) {
     return `'${String(value).replace(/'/g, `'\\''`)}'`;
+}
+
+/**
+ * Run a short remote command with stdin attached to a pipe.
+ *
+ * @param {String} command
+ * @param {{server: String}} options
+ * @param {String} [input]
+ * @returns {Promise<String>} stdout
+ */
+function runRemote(command, options, input = '') {
+    return new Promise((resolve, reject) => {
+        const ssh = child_process.spawn(
+            'ssh',
+            [
+                '-q',
+                '-T',
+                '-o ControlMaster=auto',
+                `-o ControlPath=${controlPath}`,
+                options.server,
+                '--',
+                command,
+            ],
+            { stdio: ['pipe', 'pipe', 'pipe'] }
+        );
+
+        let stdout = '',
+            stderr = '';
+
+        ssh.stdout.on('data', (data) => (stdout += `${data}`));
+        ssh.stderr.on('data', (data) => (stderr += `${data}`));
+
+        ssh.on('error', reject);
+        ssh.on('close', (code) => {
+            if (code === 0) {
+                resolve(stdout);
+            } else {
+                /* node:coverage disable */
+                reject(new Error(`ssh exited with code ${code}: ${stderr}`));
+                /* node:coverage enable */
+            }
+        });
+
+        ssh.stdin.end(input);
+    });
+}
+
+/**
+ * Create a private remote directory holding the sudo password and an askpass
+ * helper. The password never appears in rsync's stdin stream.
+ *
+ * @param {String} password
+ * @param {{server: String}} options
+ * @returns {Promise<String>} remote directory path
+ */
+export function createSudoAuth(password, options = {}) {
+    const command = [
+        'set -e',
+        'd=$(mktemp -d "${HOME:-/tmp}/.frak-sudo.XXXXXX")',
+        'chmod 700 "$d"',
+        'cat > "$d/password"',
+        'cat > "$d/askpass" <<EOF',
+        '#!/bin/sh',
+        'cat "$d/password"',
+        'EOF',
+        'chmod 700 "$d/askpass"',
+        'printf \'%s\' "$d"',
+    ].join('\n');
+
+    return runRemote(command, options, `${password || ''}\n`).then((out) => out.trim());
+}
+
+/**
+ * Remove a remote directory created by createSudoAuth().
+ *
+ * @param {String} directory
+ * @param {{server: String}} options
+ * @returns {Promise}
+ */
+export function removeSudoAuth(directory, options = {}) {
+    return runRemote(`rm -rf ${quote(directory)}`, options);
 }
 
 /**
