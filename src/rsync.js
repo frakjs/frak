@@ -1,12 +1,16 @@
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { parse } from './cli.js';
-import config, { locate as locateConfig, rsync_path } from './config.js';
+import config, { locate as locateConfig } from './config.js';
 import debug from './debug.js';
 import humanize from './humanize.js';
+import * as ssh from './ssh.js';
 
 let backupPath = null;
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /**
  * Generate rsync filters.
@@ -102,6 +106,10 @@ export function exec(options = {}) {
         backup = [...backup, '--backup', `--backup-dir=${backupPath}`];
     }
 
+    const wrapperCommand = config.become
+        ? path.resolve(__dirname, '../bin/frak-ssh-wrapper')
+        : `ssh -o ControlMaster=auto -o ControlPath=${ssh.controlPath}`;
+
     const args = [
         'rsync',
         [
@@ -110,55 +118,61 @@ export function exec(options = {}) {
             '--no-owner',
             '--no-perms',
             '--no-times',
-            '-e "ssh -t"',
+            `--rsh=${wrapperCommand}`,
             '--human-readable',
             '--compress',
             '--checksum',
             '--itemize-changes',
             '--recursive',
             '--delete',
-            process.env.DEBUG ? '--rsh=ssh' : '--rsh=ssh -q',
-            `--rsync-path=${rsync_path()}`,
+            // `--rsync-path=${rsync_path()}`,
             '--filter=. -',
             ...backup,
             ...(options.options || []),
             source,
             destination,
         ],
+        {
+            stdio: ['pipe', 'pipe', 'pipe', 'pipe'],
+            env: {
+                ...process.env,
+                SSH_CONTROL_PATH: ssh.controlPath,
+                // The remote rsync should run as this user (empty means root).
+                FRAK_BECOME: config.become === true ? 'root' : config.become || '',
+            },
+        },
     ];
 
     debug('rsync:', args);
-    debug(args.flat().join(' '));
+    debug(args.slice(0, 2).flat().join(' '));
     debug('filters:', filters());
 
     let output = '',
         stderr = '';
 
-    const rsync = spawn.apply(null, args);
-
-    const echo = spawn('echo', [filters().join('\n')]);
-
-    echo.stdout.pipe(rsync.stdin);
-
-    rsync.stdout.on('data', (data) => {
-        output += `${data}`;
-
-        if (options.humanize) {
-            const humanized = humanize(`${data}`);
-            humanized && console.log(humanized.trim());
-        }
-    });
-    rsync.stderr.on('data', (data) => {
-        stderr += `${data}`;
-    });
-
-    /* node:coverage disable */
-    rsync.stderr.on('data', (data) => {
-        process.stderr.write(`${data}`); // Print any errors from the child process
-    });
-    /* node:coverage enable */
-
     return new Promise((resolve, reject) => {
+        const echo = spawn('echo', [filters().join('\n')]);
+
+        const rsync = spawn.apply(null, args);
+
+        rsync.stdout.on('data', (data) => {
+            output += `${data}`;
+
+            if (options.humanize) {
+                const humanized = humanize(`${data}`);
+                humanized && console.log(humanized.trim());
+            }
+        });
+        rsync.stderr.on('data', (data) => {
+            stderr += `${data}`;
+        });
+
+        /* node:coverage disable */
+        rsync.stderr.on('data', (data) => {
+            process.stderr.write(`${data}`); // Print any errors from the child process
+        });
+        /* node:coverage enable */
+
         rsync.on('exit', (code) => {
             if (code === 0) {
                 resolve({
@@ -171,5 +185,18 @@ export function exec(options = {}) {
                 /* node:coverage enable */
             }
         });
+
+        // Write the password on named-pipe 3. Use an empty line when no
+        // password was collected (non-TTY), so the wrapper never sends the
+        // literal string "undefined" to sudo.
+        if (config.become) {
+            rsync.stdio[3].end(`${config.password || ''}\n`);
+        }
+
+        // Write the filters to stdin
+        echo.stdout.pipe(rsync.stdin);
+        // rsync.stdin.write(filters().join('\n'));
+
+        debug('wrote stdin');
     });
 }

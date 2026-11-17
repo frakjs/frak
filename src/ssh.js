@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process';
+import child_process from 'node:child_process';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import config from './config.js';
@@ -14,7 +14,7 @@ export async function control() {
 
     mkdirSync(dirname(controlPath), { recursive: true });
 
-    const ssh = spawn(
+    const ssh = child_process.spawn(
         'ssh',
         [
             '-o ControlMaster=yes',
@@ -36,6 +36,10 @@ export async function control() {
         });
     };
 
+    // Sudo authentication is handled by the command that actually needs it
+    // (the rsync wrapper or sudo_command()), so there is no "sudo -v" warm-up
+    // here. Not every sudoers configuration permits "sudo -v".
+
     return {
         close: async () => await close(),
         stdout: ssh.stdout,
@@ -45,17 +49,91 @@ export async function control() {
 }
 
 /**
- * Execute a command on a remote server.
+ * Execute a command on a remote server (interactive).
+ *
+ * @param {String} command
+ * @param {{
+ *     root: String,
+ *     server: String,
+ *     sudo_command: String,
+ *     input: String,
+ * }} [options={}]
+ * @returns {Promise}
+ */
+export function exec(command, options = {}) {
+    debug({ command, options });
+
+    const cmd = `set -e; cd ${options.root || '.'}; ${command}`;
+
+    return new Promise((resolve, reject) => {
+        const ssh = child_process.spawn(
+            'ssh',
+            [
+                '-tt',
+                '-o ControlMaster=auto',
+                `-o ControlPath=${controlPath}`,
+                options.server,
+                '--',
+                cmd,
+            ],
+            {
+                stdio: ['pipe', 'inherit', 'inherit'],
+            }
+        );
+
+        // 1. Put local terminal into raw mode so arrow keys pass through without local echo
+        const wasRaw = process.stdin.isRaw;
+        if (process.stdin.isTTY) {
+            process.stdin.setRawMode(true);
+        }
+        process.stdin.resume();
+
+        // 2. Write initial input without closing stdin
+        if (options.input !== undefined) {
+            const formattedInput = `${String(options.input).replace(/\r?\n$/, '')}\n`;
+            ssh.stdin.write(formattedInput);
+        }
+
+        // 3. Keep stdin open and pipe interactive keystrokes (arrows, Ctrl+C, etc.)
+        process.stdin.pipe(ssh.stdin);
+
+        const cleanup = () => {
+            process.stdin.unpipe(ssh.stdin);
+            if (process.stdin.isTTY) {
+                process.stdin.setRawMode(Boolean(wasRaw));
+            }
+            process.stdin.pause();
+        };
+
+        ssh.on('error', (err) => {
+            cleanup();
+            reject(err);
+        });
+
+        ssh.on('close', (code) => {
+            cleanup();
+            if (code === 0) {
+                resolve();
+            } else {
+                reject(new Error(`Command failed with exit code ${code}`));
+            }
+        });
+    });
+}
+
+/**
+ * Spawn a command on a remote server.
  *
  * @param {String} command
  * @param {{
  *     quiet: Boolean,
  *     root: String,
- *     server: String
+ *     server: String,
+ *     sudo_command: string,
  * }} [options={}]
  * @returns {Promise & { stderr: Readable, stdout: Readable }}
  */
-export function exec(command, options = {}) {
+export function spawn(command, options = {}) {
     debug({ command });
 
     let cmd;
@@ -66,7 +144,9 @@ export function exec(command, options = {}) {
         cmd = `cd ${options.root || '.'}; sh`;
     }
 
-    const ssh = spawn('ssh', [
+    debug({ cmd });
+
+    const ssh = child_process.spawn('ssh', [
         '-o ControlMaster=auto',
         `-o ControlPath=${controlPath}`,
         options.server,
@@ -74,7 +154,7 @@ export function exec(command, options = {}) {
         cmd,
     ]);
 
-    // const echo = spawn('echo', [ command ]);
+    // const echo = child_process.spawn('echo', [ command ]);
 
     // echo.stdout.pipe(ssh.stdin);
 

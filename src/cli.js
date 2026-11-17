@@ -90,31 +90,39 @@ export async function password(prompt, { stdin = null, stdout = null } = {}) {
         let password = '';
 
         const handler = (data) => {
-            if (data === '\u000d' || data === '\u000a') {
-                cleanup();
-                stdout.write('\n');
-                resolve(password);
+            // A single chunk can contain several characters (fast typing,
+            // paste, terminal multiplexers), so process it character by
+            // character instead of comparing the whole chunk to Enter.
+            for (let i = 0; i < data.length; i++) {
+                const char = data[i];
 
-                return;
-            }
+                if (char === '\u000d' || char === '\u000a') {
+                    cleanup();
+                    stdout.write('\n');
+                    resolve(password);
 
-            // Handle Ctrl+C (Interrupt)
-            if (data === '\u0003') {
-                cleanup();
-                stdout.write('\n');
-                process.exit(130);
-            }
-
-            // Handle Backspace (\u007f or \u0008)
-            if (data === '\u007f' || data === '\u0008') {
-                if (password.length > 0) {
-                    password = password.slice(0, -1);
+                    return;
                 }
-                return;
-            }
 
-            // Append standard printable characters
-            password += data;
+                // Handle Ctrl+C (Interrupt)
+                if (char === '\u0003') {
+                    cleanup();
+                    stdout.write('\n');
+                    process.exit(130);
+                }
+
+                // Handle Backspace (\u007f or \u0008)
+                if (char === '\u007f' || char === '\u0008') {
+                    if (password.length > 0) {
+                        password = password.slice(0, -1);
+                    }
+
+                    continue;
+                }
+
+                // Append standard printable characters
+                password += char;
+            }
         };
 
         const cleanup = () => {

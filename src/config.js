@@ -27,8 +27,10 @@ export function rsync_path() {
         return config.rsync_path;
     }
 
-    if (config.become) {
-        return `${sudo_command()} rsync`;
+    if (config.become === true) {
+        return `sudo rsync`;
+    } else if (config.become) {
+        return `sudo -u ${config.become}`;
     }
 
     return 'rsync';
@@ -38,14 +40,38 @@ export function rsync_path() {
  * Determine the sudo_command to use, based on config.become.
  */
 export function sudo_command() {
+    const scriptTemplate = `#!/bin/sh
+f='%s'
+[ ! -p "$f" ] && exit 1
+IFS= read -r p < "$f" ;
+echo "$p" ;
+rm "$f" 2>/dev/null ;
+`
+        .replace(/([$])/g, '\\$1')
+        .replace(/\n/g, '\\n');
+
     const askpass = config.password
-        ? `export SUDO_ASKPASS=~/.tmp/frak-ask-pass; mkdir -p ~/.tmp; echo '#!/bin/sh\necho ${config.password}; rm $0' > ~/.tmp/frak-ask-pass; chmod +x ~/.tmp/frak-ask-pass;`
+        ? `IFS= read -rs pw
+mkdir -p ~/.tmp
+export FIFO=~/.tmp/frak-ask-pass.fifo
+export SUDO_ASKPASS=~/.tmp/frak-ask-pass
+rm "$FIFO" 2>/dev/null || true
+mkfifo -m 600 "$FIFO"
+
+# Create sudo password script
+printf "${scriptTemplate}" "$FIFO" > "$SUDO_ASKPASS"
+chmod 700 "$SUDO_ASKPASS"
+
+# Feed password into FIFO in background (blocks until askpass.sh reads it)
+( printf "%s\\n" "$pw" > "$FIFO" ) & unset pw
+` //.replace(/([$"|\\])/g, '\\$1')
         : '';
 
     if (config.become === true) {
-        return `${askpass} sudo --prompt= ${config.password ? ' -A' : ''} `;
+        return `${askpass} exec sudo --prompt= ${config.password ? ' -A' : ''} -k `;
     } else if (config.become) {
-        return `${askpass} sudo -u ${config.become} --prompt= ${config.password ? ' -A' : ''} `;
+        // return `${askpass} exec sudo -C 4 -u ${config.become} --prompt= ${config.password ? ' -A' : ''} `;
+        return `${askpass} exec sudo -u ${config.become} --prompt= ${config.password ? ' -A' : ''} -k `;
     } else {
         return '';
     }

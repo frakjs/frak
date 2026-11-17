@@ -1,0 +1,104 @@
+#!/bin/sh
+#
+# rsync remote-shell wrapper that runs the remote rsync under sudo.
+#
+# rsync invokes this as: frak-ssh-wrapper <host> <rsync --server ...>
+# The sudo password is supplied by the caller on file descriptor 3 (see
+# src/rsync.js), followed by rsync's normal protocol data on stdin.
+#
+set -e
+
+HOST="$1"
+
+if [ -z "$HOST" ]; then
+    echo "frak-ssh-wrapper: missing host argument" >&2
+    exit 2
+fi
+
+shift
+
+if [ ! -e /dev/fd/3 ] && [ ! -e /proc/self/fd/3 ]; then
+    echo "frak-ssh-wrapper: expected the sudo password on file descriptor 3" >&2
+    exit 2
+fi
+
+# config.become === true means "run as root", which needs no -u flag. A string
+# means "run as that user" (sudo -u). FRAK_BECOME is set by src/rsync.js.
+SUDO_USER_ARGS=''
+
+case "${FRAK_BECOME:-}" in
+    '' | root) ;;
+    *[!A-Za-z0-9._-]*)
+        echo "frak-ssh-wrapper: invalid become user: $FRAK_BECOME" >&2
+        exit 2
+        ;;
+    *)
+        SUDO_USER_ARGS="-u $FRAK_BECOME"
+        ;;
+esac
+
+# rsync has already escaped each remote argument for the remote shell, so pass
+# them through unchanged. Adding another layer of quoting here would corrupt
+# paths containing spaces or quotes.
+#
+# The password is read from stdin and handed to sudo through an askpass helper
+# instead of via "sudo -S". That way sudo only consumes the password if it
+# actually needs one, leaving rsync's protocol data on stdin untouched. This
+# also avoids "sudo -v", which is not permitted by every sudoers configuration.
+REMOTE_COMMAND=$(
+    cat <<'EOF'
+IFS= read -r FRAK_SUDO_PASS || FRAK_SUDO_PASS=''
+FRAK_ASKPASS_DIR=$(mktemp -d "${HOME:-/tmp}/.frak-askpass.XXXXXX" 2>/dev/null || mktemp -d "${TMPDIR:-/tmp}/frak-askpass.XXXXXX") || exit 1
+trap 'rm -rf "$FRAK_ASKPASS_DIR"' EXIT
+FRAK_ASKPASS="$FRAK_ASKPASS_DIR/askpass"
+printf '#!/bin/sh\nprintf "%%s\\n" "$FRAK_SUDO_PASS"\n' > "$FRAK_ASKPASS" || exit 1
+chmod 700 "$FRAK_ASKPASS" || exit 1
+FRAK_SUDO_PASS="$FRAK_SUDO_PASS" SUDO_ASKPASS="$FRAK_ASKPASS" exec sudo -A -p '' -k @SUDO_USER_ARGS@ --
+EOF
+)
+
+REMOTE_COMMAND=$(printf '%s' "$REMOTE_COMMAND" | sed "s|@SUDO_USER_ARGS@|$SUDO_USER_ARGS|")
+REMOTE_COMMAND="$REMOTE_COMMAND $*"
+REMOTE_COMMAND="$REMOTE_COMMAND
+status=\$?
+unset FRAK_SUDO_PASS
+exit \$status"
+
+# Build the ssh argv, only adding ControlPath when one is configured.
+set -- -q -T -o ControlMaster=auto
+
+if [ -n "$SSH_CONTROL_PATH" ]; then
+    set -- "$@" -o "ControlPath=$SSH_CONTROL_PATH"
+fi
+
+# Feed the password (fd 3) and then rsync's protocol stream into ssh. A FIFO is
+# used instead of a pipeline so ssh can be waited on and the feeder stopped if
+# ssh exits early. A plain pipeline deadlocks: "cat" keeps blocking on rsync's
+# stdin, which rsync keeps open while it waits for the transport to finish. That
+# turned every remote sudo failure into a hung process.
+FRAK_TMP=$(mktemp -d "${TMPDIR:-/tmp}/frak-ssh.XXXXXX" 2>/dev/null ||
+    mktemp -d "${HOME:-/tmp}/frak-ssh.XXXXXX") || exit 1
+trap 'rm -rf "$FRAK_TMP"' EXIT
+
+FIFO="$FRAK_TMP/input"
+mkfifo "$FIFO" || exit 1
+
+# Save stdin first: POSIX shells (notably busybox ash) point a background job's
+# stdin at /dev/null, even when the job group itself has a stdin redirection.
+exec 4<&0
+{
+    cat <&3
+    exec cat <&4
+} > "$FIFO" &
+exec 4<&-
+FEEDER=$!
+
+STATUS=0
+ssh "$@" "$HOST" -- "$REMOTE_COMMAND" < "$FIFO" || STATUS=$?
+
+# If ssh exited while the feeder was still blocked reading stdin, stop it. If
+# the transfer succeeded the feeder has already exited by itself.
+kill "$FEEDER" 2>/dev/null || true
+wait "$FEEDER" 2>/dev/null || true
+
+exit $STATUS

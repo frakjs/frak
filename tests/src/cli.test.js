@@ -83,6 +83,59 @@ suite('src/cli.js', () => {
         assert.equal(result, false);
     });
 
+    /**
+     * Call cli.password() with a fake TTY, feeding it the given chunks.
+     */
+    async function password(chunks) {
+        const stdin = new stream.Stream();
+        stdin.isTTY = true;
+        stdin.setRawMode = () => {};
+        stdin.setEncoding = () => {};
+        stdin.resume = () => {};
+        stdin.pause = () => {};
+
+        let output = '';
+        const stdout = {
+            write(data) {
+                output += data.toString();
+            },
+        };
+
+        const test = cli.password('Password: ', { stdin, stdout });
+
+        chunks.forEach((chunk) => stdin.emit('data', chunk));
+
+        return { value: await test, output };
+    }
+
+    /**
+     * The Enter key can arrive in the same chunk as the last characters.
+     */
+    test('does not include Enter in the password', async () => {
+        const { value, output } = await password(['secret\r']);
+
+        assert.strictEqual(value, 'secret');
+        assert.strictEqual(output, 'Password: \n');
+    });
+
+    /**
+     * The password may be split across multiple stdin chunks.
+     */
+    test('handles a password split across chunks', async () => {
+        const { value } = await password(['sec', 'ret\r']);
+
+        assert.strictEqual(value, 'secret');
+    });
+
+    /**
+     * Backspaces inside a chunk should remove the preceding character.
+     */
+    test('handles backspace inside a chunk', async () => {
+        const { value } = await password(['secrX', '\u007f', 'et\r']);
+
+        assert.strictEqual(value, 'secret');
+    });
+
     suite('Table', () => {
         let output = [];
 

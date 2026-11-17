@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { execSync, spawn } from 'node:child_process';
+import { exec, execSync, spawn } from 'node:child_process';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -91,22 +91,11 @@ async function main(args) {
         }
 
         try {
-            const cmd = options.command
-                ? `${sudo_command()} sh -c "${options.command}"`
-                : `${sudo_command()} $SHELL -i`;
-
-            debug(
-                `ssh -t ${config.server} -- "` +
-                    `cd ${config.root} && ${cmd.replace(/([&|$"\\])/g, '\\$1')}"`
-            );
-
-            execSync(
-                `ssh -t ${config.server} -- "` +
-                    `cd ${config.root} && ${cmd.replace(/([&|$"\\])/g, '\\$1')}"`,
-                {
-                    stdio: 'inherit',
-                }
-            );
+            await ssh.exec(`${sudo_command()} ${options.command ? options.command : '$SHELL -i'}`, {
+                server: config.server,
+                root: config.root,
+                input: config.password,
+            });
         } catch (e) {
             debug(e);
 
@@ -153,7 +142,7 @@ async function main(args) {
 
         // Execute dry-run
         const result = await rsync.exec({ humanize: true, options: ['--dry-run'] }).catch((e) => {
-            console.log(ansi.red(e.message || e));
+            console.error(ansi.red(e.message || e));
 
             process.exit(1);
         });
@@ -186,7 +175,7 @@ async function main(args) {
             patch = await diff(output, { interactive: false })
                 /* node:coverage disable */
                 .catch((e) => {
-                    console.error(e);
+                    console.error(e.message || e);
 
                     process.exit(1);
                 });
@@ -196,7 +185,13 @@ async function main(args) {
         console.log('');
 
         // Execute actual rsync command
-        const { backupPath, output: actualOutput } = await rsync.exec({ humanize: true });
+        const { backupPath, output: actualOutput } = await rsync
+            .exec({ humanize: true })
+            .catch((e) => {
+                console.error(ansi.red(e.message || e));
+
+                process.exit(1);
+            });
 
         if (actualOutput.trim()) {
             console.log('');
@@ -208,7 +203,7 @@ async function main(args) {
             const copy = spawn('ssh', [
                 config.server,
                 '--',
-                `${sudo_command} cat > '${config.root || '.'}/${backupPath}/${hash}.patch'`,
+                `${sudo_command()} cat > '${config.root || '.'}/${backupPath}/${hash}.patch'`,
             ]);
 
             copy.stdout.on('data', (data) => debug('' + data));
@@ -242,7 +237,7 @@ async function main(args) {
                     root: config.root,
                     sudo_command: sudo_command(),
                 })
-                .catch(console.error);
+                .catch((e) => console.error(e.message || e));
 
             console.log('');
         }
@@ -271,7 +266,7 @@ async function main(args) {
         };
         const ls = `stat -c '%Y %n' .backups/* | sort -r`;
 
-        const list = ssh.exec(
+        const list = ssh.spawn(
             `${sudo_command()} ${ls} | xargs -I {} sh -c 'TIMESTAMP=$(echo {} | cut -d" " -f1); NAME=$(echo {} | cut -d" " -f2-); echo $TIMESTAMP${delimeter}$NAME${delimeter}$(${grep.additions})${delimeter}$(${grep.deletions})'`,
             { quiet: true, server: config.server, root: config.root }
         );
