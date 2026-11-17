@@ -202,6 +202,8 @@ async function main(args) {
             const hash = sha256(patch).slice(0, 7);
             const copy = spawn('ssh', [
                 config.server,
+                '-o ControlMaster=auto',
+                `-o ControlPath=${ssh.controlPath}`,
                 '--',
                 `${sudo_command()} cat > '${config.root || '.'}/${backupPath}/${hash}.patch'`,
             ]);
