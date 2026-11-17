@@ -37,44 +37,39 @@ export function rsync_path() {
 }
 
 /**
- * Determine the sudo_command to use, based on config.become.
+ * Build the remote shell prefix that runs the following command via sudo.
+ *
+ * The sudo password is read from the first line of stdin; everything after it
+ * is left untouched for the command itself (rsync protocol data, patch
+ * contents, or a shell script). sudo gets the password through an askpass
+ * helper in a private temporary directory, so it never consumes command input
+ * and no fixed remote FIFO is left behind.
  */
 export function sudo_command() {
-    const scriptTemplate = `#!/bin/sh
-f='%s'
-[ ! -p "$f" ] && exit 1
-IFS= read -r p < "$f" ;
-echo "$p" ;
-rm "$f" 2>/dev/null ;
-`
-        .replace(/([$])/g, '\\$1')
-        .replace(/\n/g, '\\n');
-
-    const askpass = config.password
-        ? `IFS= read -rs pw
-mkdir -p ~/.tmp
-export FIFO=~/.tmp/frak-ask-pass.fifo
-export SUDO_ASKPASS=~/.tmp/frak-ask-pass
-rm "$FIFO" 2>/dev/null || true
-mkfifo -m 600 "$FIFO"
-
-# Create sudo password script
-printf "${scriptTemplate}" "$FIFO" > "$SUDO_ASKPASS"
-chmod 700 "$SUDO_ASKPASS"
-
-# Feed password into FIFO in background (blocks until askpass.sh reads it)
-( printf "%s\\n" "$pw" > "$FIFO" ) & unset pw
-` //.replace(/([$"|\\])/g, '\\$1')
-        : '';
-
-    if (config.become === true) {
-        return `${askpass} exec sudo --prompt= ${config.password ? ' -A' : ''} -k `;
-    } else if (config.become) {
-        // return `${askpass} exec sudo -C 4 -u ${config.become} --prompt= ${config.password ? ' -A' : ''} `;
-        return `${askpass} exec sudo -u ${config.become} --prompt= ${config.password ? ' -A' : ''} -k `;
-    } else {
+    if (!config.become) {
         return '';
     }
+
+    const becomeUser = config.become === true ? '' : String(config.become);
+
+    if (becomeUser && !/^[A-Za-z0-9._-]+$/.test(becomeUser)) {
+        throw new Error(`Invalid become user: ${becomeUser}`);
+    }
+
+    const userArgs = becomeUser ? `-u ${becomeUser}` : '';
+
+    return [
+        '[ -t 0 ] && stty -echo 2>/dev/null || true',
+        "IFS= read -r FRAK_SUDO_PASS || FRAK_SUDO_PASS=''",
+        '[ -t 0 ] && stty echo 2>/dev/null || true',
+        'FRAK_ASKPASS_DIR=$(mktemp -d "${HOME:-/tmp}/.frak-askpass.XXXXXX" 2>/dev/null || mktemp -d "${TMPDIR:-/tmp}/frak-askpass.XXXXXX") || exit 1',
+        "trap 'rm -rf \"$FRAK_ASKPASS_DIR\"' EXIT",
+        'FRAK_ASKPASS="$FRAK_ASKPASS_DIR/askpass"',
+        "printf '#!/bin/sh\\nprintf \"%%s\\\\n\" \"$FRAK_SUDO_PASS\"\\n' > \"$FRAK_ASKPASS\" || exit 1",
+        'chmod 700 "$FRAK_ASKPASS" || exit 1',
+        'export FRAK_SUDO_PASS SUDO_ASKPASS="$FRAK_ASKPASS"',
+        `sudo -A -p '' -k ${userArgs} --`,
+    ].join('\n');
 }
 
 /**

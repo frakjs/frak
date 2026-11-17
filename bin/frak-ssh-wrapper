@@ -53,7 +53,7 @@ trap 'rm -rf "$FRAK_ASKPASS_DIR"' EXIT
 FRAK_ASKPASS="$FRAK_ASKPASS_DIR/askpass"
 printf '#!/bin/sh\nprintf "%%s\\n" "$FRAK_SUDO_PASS"\n' > "$FRAK_ASKPASS" || exit 1
 chmod 700 "$FRAK_ASKPASS" || exit 1
-FRAK_SUDO_PASS="$FRAK_SUDO_PASS" SUDO_ASKPASS="$FRAK_ASKPASS" exec sudo -A -p '' -k @SUDO_USER_ARGS@ --
+FRAK_SUDO_PASS="$FRAK_SUDO_PASS" SUDO_ASKPASS="$FRAK_ASKPASS" sudo -A -p '' -k @SUDO_USER_ARGS@ --
 EOF
 )
 

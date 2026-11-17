@@ -7,6 +7,13 @@ import debug from './debug.js';
 export const controlPath = `${process.env.HOME}/.ssh/control/frak-%C`;
 
 /**
+ * Quote a value for a POSIX shell.
+ */
+function quote(value) {
+    return `'${String(value).replace(/'/g, `'\\''`)}'`;
+}
+
+/**
  * Establish a control master socket for the SSH connections
  */
 export async function control() {
@@ -63,7 +70,8 @@ export async function control() {
 export function exec(command, options = {}) {
     debug({ command, options });
 
-    const cmd = `set -e; cd ${options.root || '.'}; ${command}`;
+    const prefix = options.sudo_command ? `${options.sudo_command} ` : '';
+    const cmd = `set -e; cd ${quote(options.root || '.')}; ${prefix}sh -c ${quote(command)}`;
 
     return new Promise((resolve, reject) => {
         const ssh = child_process.spawn(
@@ -88,9 +96,10 @@ export function exec(command, options = {}) {
         }
         process.stdin.resume();
 
-        // 2. Write initial input without closing stdin
-        if (options.input !== undefined) {
-            const formattedInput = `${String(options.input).replace(/\r?\n$/, '')}\n`;
+        // 2. Write the initial input without closing stdin. When sudo is used,
+        //    this is the password consumed by sudo_command() on the remote end.
+        if (options.input !== undefined || options.sudo_command) {
+            const formattedInput = `${String(options.input || '').replace(/\r?\n$/, '')}\n`;
             ssh.stdin.write(formattedInput);
         }
 
@@ -136,13 +145,8 @@ export function exec(command, options = {}) {
 export function spawn(command, options = {}) {
     debug({ command });
 
-    let cmd;
-
-    if (options.sudo_command) {
-        cmd = `cd ${options.root || '.'}; ${options.sudo_command} sh`;
-    } else {
-        cmd = `cd ${options.root || '.'}; sh`;
-    }
+    const prefix = options.sudo_command ? `${options.sudo_command} ` : '';
+    const cmd = `cd ${quote(options.root || '.')}; ${prefix}sh`;
 
     debug({ cmd });
 
@@ -157,6 +161,12 @@ export function spawn(command, options = {}) {
     // const echo = child_process.spawn('echo', [ command ]);
 
     // echo.stdout.pipe(ssh.stdin);
+
+    // The first line is consumed by sudo_command(); the rest is the script
+    // that the remote shell executes.
+    if (options.sudo_command) {
+        ssh.stdin.write(`${String(options.password || '').replace(/\r?\n$/, '')}\n`);
+    }
 
     ssh.stdin.write(command);
     ssh.stdin.end();
@@ -189,4 +199,57 @@ export function spawn(command, options = {}) {
     promise.stderr = ssh.stderr;
 
     return promise;
+}
+
+/**
+ * Write contents to a file on the remote server.
+ *
+ * @param {String} destination Path relative to options.root
+ * @param {String} contents
+ * @param {{
+ *     server: String,
+ *     root: String,
+ *     password: String,
+ *     sudo_command: String,
+ * }} [options={}]
+ * @returns {Promise}
+ */
+export function upload(destination, contents, options = {}) {
+    debug({ destination, bytes: String(contents).length });
+
+    const prefix = options.sudo_command ? `${options.sudo_command} ` : '';
+    const script = `mkdir -p ${quote(dirname(destination))} && cat > ${quote(destination)}`;
+    const cmd = `set -e; cd ${quote(options.root || '.')}; ${prefix}sh -c ${quote(script)}`;
+
+    return new Promise((resolve, reject) => {
+        const ssh = child_process.spawn(
+            'ssh',
+            ['-o ControlMaster=auto', `-o ControlPath=${controlPath}`, options.server, '--', cmd],
+            { stdio: ['pipe', 'pipe', 'pipe'] }
+        );
+
+        let stderr = '';
+
+        ssh.stderr.on('data', (data) => {
+            stderr += `${data}`;
+        });
+        ssh.stdout.on('data', (data) => debug('' + data));
+
+        ssh.on('error', reject);
+        ssh.on('exit', (code) => {
+            if (code === 0) {
+                resolve();
+            } else {
+                /* node:coverage disable */
+                reject(new Error(`ssh exited with code ${code}: ${stderr}`));
+                /* node:coverage enable */
+            }
+        });
+
+        if (options.sudo_command) {
+            ssh.stdin.write(`${String(options.password || '').replace(/\r?\n$/, '')}\n`);
+        }
+
+        ssh.stdin.end(contents);
+    });
 }

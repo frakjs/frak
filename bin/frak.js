@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 
-import { spawn } from 'node:child_process';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -91,9 +90,10 @@ async function main(args) {
         }
 
         try {
-            await ssh.exec(`${sudo_command()} ${options.command ? options.command : '$SHELL -i'}`, {
+            await ssh.exec(options.command ? options.command : '$SHELL -i', {
                 server: config.server,
                 root: config.root,
+                sudo_command: sudo_command(),
                 input: config.password,
             });
         } catch (e) {
@@ -200,17 +200,19 @@ async function main(args) {
         // Place patch file in backup dir
         if (command === 'push') {
             const hash = sha256(patch).slice(0, 7);
-            const copy = spawn('ssh', [
-                config.server,
-                '-o ControlMaster=auto',
-                `-o ControlPath=${ssh.controlPath}`,
-                '--',
-                `${sudo_command()} cat > '${config.root || '.'}/${backupPath}/${hash}.patch'`,
-            ]);
 
-            copy.stdout.on('data', (data) => debug('' + data));
-            copy.stderr.on('data', (data) => debug('' + data));
-            copy.stdin.write(patch);
+            await ssh
+                .upload(`${backupPath}/${hash}.patch`, patch, {
+                    server: config.server,
+                    root: config.root,
+                    sudo_command: sudo_command(),
+                    password: config.password,
+                })
+                .catch((e) => {
+                    console.error(ansi.red(e.message || e));
+
+                    process.exit(1);
+                });
         }
 
         // Execute "after" command
@@ -234,10 +236,11 @@ async function main(args) {
             debug({ command: config.after });
 
             await ssh
-                .exec(config.after, {
+                .spawn(config.after, {
                     server: config.server,
                     root: config.root,
                     sudo_command: sudo_command(),
+                    password: config.password,
                 })
                 .catch((e) => console.error(e.message || e));
 
@@ -263,14 +266,20 @@ async function main(args) {
 
         const delimeter = '------Separator--';
         const grep = {
-            additions: `[ -f "$NAME/*.patch" ] && grep -e '^+' "$NAME"/*.patch || cat /dev/null | grep -v '^+++' | wc -l`,
-            deletions: `[ -f "$NAME/*.patch" ] && grep -e '^-' "$NAME"/*.patch || cat /dev/null | grep -v '^---' | wc -l`,
+            additions: `[ -f "$NAME"/*.patch ] && grep -e '^+' "$NAME"/*.patch || cat /dev/null | grep -v '^+++' | wc -l`,
+            deletions: `[ -f "$NAME"/*.patch ] && grep -e '^-' "$NAME"/*.patch || cat /dev/null | grep -v '^---' | wc -l`,
         };
         const ls = `stat -c '%Y %n' .backups/* | sort -r`;
 
         const list = ssh.spawn(
-            `${sudo_command()} ${ls} | xargs -I {} sh -c 'TIMESTAMP=$(echo {} | cut -d" " -f1); NAME=$(echo {} | cut -d" " -f2-); echo $TIMESTAMP${delimeter}$NAME${delimeter}$(${grep.additions})${delimeter}$(${grep.deletions})'`,
-            { quiet: true, server: config.server, root: config.root }
+            `${ls} | xargs -I {} sh -c 'TIMESTAMP=$(echo {} | cut -d" " -f1); NAME=$(echo {} | cut -d" " -f2-); echo $TIMESTAMP${delimeter}$NAME${delimeter}$(${grep.additions})${delimeter}$(${grep.deletions})'`,
+            {
+                quiet: true,
+                server: config.server,
+                root: config.root,
+                sudo_command: sudo_command(),
+                password: config.password,
+            }
         );
         let backups = '';
 
