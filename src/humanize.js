@@ -7,6 +7,7 @@ import * as ansi from './ansi.js';
  * @returns {String}
  */
 export default function humanize(changes) {
+    // prettier-ignore
     return changes
         .replace(/(^|\n)created directory .*\n/g, '$1')
         .replace(/(^|\n)cannot delete non-empty directory: .*\n/g, '$1')
@@ -17,5 +18,5 @@ export default function humanize(changes) {
         .replace(/<fc..\.\.\.\.\.\./g,    ansi.yellow('Update     '))
         .replace(/>fc..\.\.\.\.\.\./g,    ansi.yellow('Update     '))
         .replace(/cLc\.T\.\.\.\.\.\./g,   ansi.yellow('Update     '))
-        .replace(/\*deleting {2}/g,          ansi.red('Delete     '))
+        .replace(/\*deleting {2}/g,          ansi.red('Delete     '));
 }

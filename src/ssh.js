@@ -122,7 +122,9 @@ async function waitForControlMaster(ssh) {
 
         const onExit = (code) => {
             masterExited = true;
-            finish(new Error(`control master exited with code ${code} before its socket was ready`));
+            finish(
+                new Error(`control master exited with code ${code} before its socket was ready`)
+            );
         };
 
         const onError = (error) => {
@@ -181,7 +183,8 @@ export async function control() {
         }
 
         closePromise = new Promise((resolve, reject) => {
-            const finish = (code) => (code === 0 ? resolve(true) : reject(`exited with code ${code}`));
+            const finish = (code) =>
+                code === 0 ? resolve(true) : reject(`exited with code ${code}`);
 
             if (exitError) {
                 reject(exitError);
