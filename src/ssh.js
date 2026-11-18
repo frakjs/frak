@@ -17,14 +17,15 @@ export function quote(value) {
 }
 
 /**
- * Run a short remote command with stdin attached to a pipe.
+ * Run a short remote command as the SSH user with stdin attached to a pipe.
+ * This intentionally does not apply sudo/become.
  *
  * @param {String} command
  * @param {{server: String}} options
  * @param {String} [input]
  * @returns {Promise<String>} stdout
  */
-function runRemote(command, options, input = '') {
+function run(command, options, input = '') {
     return new Promise((resolve, reject) => {
         const ssh = child_process.spawn(
             'ssh',
@@ -83,7 +84,7 @@ export function createSudoAuth(password, options = {}) {
         'printf \'%s\' "$d"',
     ].join('\n');
 
-    return runRemote(command, options, `${password || ''}\n`).then((out) => out.trim());
+    return run(command, options, `${password || ''}\n`).then((out) => out.trim());
 }
 
 /**
@@ -94,7 +95,7 @@ export function createSudoAuth(password, options = {}) {
  * @returns {Promise}
  */
 export function removeSudoAuth(directory, options = {}) {
-    return runRemote(`rm -rf ${quote(directory)}`, options);
+    return run(`rm -rf ${quote(directory)}`, options);
 }
 
 /**
