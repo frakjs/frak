@@ -16,6 +16,16 @@ import * as date from '../src/date.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const STATUS_SUCCESS = 0b00000000;
+const ERROR_CANCELED = 0b00000001;
+const ERROR_CONFIG = 0b00000010;
+const ERROR_CONTROL = 0b00000100;
+const ERROR_DIFF = 0b00001000;
+const ERROR_RSYNC = 0b00010000;
+const ERROR_PATCH = 0b00100000;
+const ERROR_USAGE = 0b01000000;
+const ERROR_DRY_RUN = 0b10000000;
+
 /**
  * Try to load config. If it fails, print error message in red.
  *
@@ -25,7 +35,42 @@ async function tryLoadConfig(env) {
     return await loadConfig(env).catch((e) => {
         console.error(ansi.red(e.message));
 
-        process.exit(1);
+        process.exit(ERROR_CONFIG);
+    });
+}
+
+/**
+ * Establish a control socket for the server. Exits if there's an error.
+ *
+ * @param {Boolean} strict
+ * @returns {Promise<{
+ *     close: Promise,
+ *     stdin: Stream.Writable,
+ *     stdout: Stream.Readable,
+ *     stderr: Stream.Readable
+ * }>}
+ */
+function establishControl(strict = true) {
+    let stderr = '';
+    let stdout = '';
+    const control = ssh.control();
+
+    control.stdout.on('data', (data) => (stdout += data));
+    control.stderr.on('data', (data) => (stderr += data));
+
+    return control.catch((error) => {
+        debug(error);
+        console.error(ansi.red(error.message || error));
+
+        if (stdout) {
+            console.log(stdout);
+        }
+
+        if (stderr) {
+            console.error(stderr);
+        }
+
+        strict && process.exit(ERROR_CONTROL);
     });
 }
 
@@ -87,7 +132,7 @@ async function main(args) {
 
         if (!config.server) {
             console.error('No remote server configured. Add "server" to frak.config.js');
-            process.exit(1);
+            process.exit(ERROR_CONFIG);
         }
 
         try {
@@ -107,7 +152,7 @@ async function main(args) {
         await tryLoadConfig(options.env);
 
         // Establish ssh control master
-        control = await ssh.control();
+        control = await establishControl();
 
         try {
             const { output } = await rsync.exec({ options: ['--dry-run'] });
@@ -127,13 +172,13 @@ async function main(args) {
         let output;
 
         // Establish ssh control master
-        control = await ssh.control();
+        control = await establishControl();
 
         // Execute dry-run
         const result = await rsync.exec({ humanize: true, options: ['--dry-run'] }).catch((e) => {
             console.error(ansi.red(e.message || e));
 
-            process.exit(1);
+            process.exit(ERROR_DRY_RUN);
         });
 
         output = result.output;
@@ -154,7 +199,7 @@ async function main(args) {
             .catch(console.error);
 
         if (!proceed) {
-            process.exit(1);
+            process.exit(ERROR_CANCELED);
         }
 
         // Prepare patch file
@@ -166,7 +211,7 @@ async function main(args) {
                 .catch((e) => {
                     console.error(e.message || e);
 
-                    process.exit(1);
+                    process.exit(ERROR_DIFF);
                 });
             /* node:coverage enable */
         }
@@ -179,7 +224,7 @@ async function main(args) {
             .catch((e) => {
                 console.error(ansi.red(e.message || e));
 
-                process.exit(1);
+                process.exit(ERROR_RSYNC);
             });
 
         if (actualOutput.trim()) {
@@ -200,7 +245,7 @@ async function main(args) {
                 .catch((e) => {
                     console.error(ansi.red(e.message || e));
 
-                    process.exit(1);
+                    process.exit(ERROR_PATCH);
                 });
         }
 
@@ -245,7 +290,7 @@ async function main(args) {
         await tryLoadConfig(options.env);
 
         // Establish ssh control master
-        control = await ssh.control();
+        control = await establishControl();
 
         const delimeter = '------Separator--';
         const grep = {
@@ -307,7 +352,7 @@ async function main(args) {
         usage();
 
         if (command !== '--help') {
-            process.exit(1);
+            process.exit(ERROR_USAGE);
         }
     }
 
@@ -317,7 +362,7 @@ async function main(args) {
         await control.close().catch((error) => console.error(ansi.red(error.message || error)));
     }
 
-    process.exit(0);
+    process.exit(STATUS_SUCCESS);
 }
 
 main(process.argv);

@@ -397,7 +397,7 @@ suite('bin/frak.js', () => {
         const code = await promise;
 
         assert.match(stdout, /^Usage: frak/);
-        assert.strictEqual(code, 1);
+        assert.notStrictEqual(code, 0);
     });
 
     /**

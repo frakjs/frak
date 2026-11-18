@@ -103,12 +103,16 @@ export function removeSudoAuth(directory, options = {}) {
  * "ControlSocket ... already exists" warning and disable multiplexing.
  *
  * @param {ChildProcess} ssh The process that owns the control master
- * @returns {Promise}
+ * @returns {Promise<{
+ *     stdin: Stream.Writable,
+ *     stdout: Stream.Readable,
+ *     stderr: Stream.Readable,
+ * }>}
  */
-async function waitForControlMaster(ssh) {
+function waitForControlMaster(ssh) {
     debug('waiting for control master socket');
 
-    return new Promise((resolve, reject) => {
+    const promise = new Promise((resolve, reject) => {
         let activeCheck;
         let retryTimer;
         let timeoutTimer;
@@ -223,12 +227,21 @@ async function waitForControlMaster(ssh) {
 
         runCheck();
     });
+
+    return promise;
 }
 
 /**
  * Establish a control master socket for the SSH connections
+ *
+ * @returns {Promise<{
+ *     close: Promise,
+ *     stdin: Stream.Writable,
+ *     stdout: Stream.Readable,
+ *     stderr: Stream.Readable,
+ * }>}
  */
-export async function control() {
+export function control() {
     debug('establishing control master');
 
     mkdirSync(dirname(controlPath), { recursive: true });
@@ -236,6 +249,7 @@ export async function control() {
     const ssh = child_process.spawn(
         'ssh',
         [
+            '-tt',
             '-o ControlMaster=yes',
             '-o ControlPersist=no',
             `-o ControlPath=${controlPath}`,
@@ -305,18 +319,18 @@ export async function control() {
         }
     });
 
-    await waitForControlMaster(ssh);
-
     // Sudo authentication is handled by the command that actually needs it
     // (the rsync wrapper or sudo_command()), so there is no "sudo -v" warm-up
     // here. Not every sudoers configuration permits "sudo -v".
 
-    return {
-        close: async () => await close(),
-        stdout: ssh.stdout,
-        stdin: ssh.stdin,
-        stderr: ssh.stderr,
-    };
+    const promise = waitForControlMaster(ssh);
+
+    promise.close = close;
+    promise.stdin = ssh.stdin;
+    promise.stdout = ssh.stdout;
+    promise.stderr = ssh.stderr;
+
+    return promise;
 }
 
 /**
