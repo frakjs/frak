@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as ansi from '../src/ansi.js';
 import * as cli from '../src/cli.js';
-import config, { load as loadConfig, sudo_command } from '../src/config.js';
+import config, { load as loadConfig } from '../src/config.js';
 import { sha256 } from '../src/crypto.js';
 import debug from '../src/debug.js';
 import diff from '../src/diff.js';
@@ -136,10 +136,9 @@ async function main(args) {
         }
 
         try {
-            await ssh.exec(options.command ? options.command : '$SHELL -i', {
+            await ssh.exec(options.command ? options.command : '$SHELL -i || /bin/sh', {
                 server: config.server,
                 root: config.root,
-                sudo_command: sudo_command(),
                 input: config.password,
             });
         } catch (e) {
@@ -239,7 +238,6 @@ async function main(args) {
                 .upload(`${backupPath}/${hash}.patch`, patch, {
                     server: config.server,
                     root: config.root,
-                    sudo_command: sudo_command(),
                     password: config.password,
                 })
                 .catch((e) => {
@@ -273,7 +271,6 @@ async function main(args) {
                 .spawn(config.after, {
                     server: config.server,
                     root: config.root,
-                    sudo_command: sudo_command(),
                     password: config.password,
                 })
                 .catch((e) => console.error(e.message || e));
@@ -305,7 +302,6 @@ async function main(args) {
                 quiet: true,
                 server: config.server,
                 root: config.root,
-                sudo_command: sudo_command(),
                 password: config.password,
             }
         );

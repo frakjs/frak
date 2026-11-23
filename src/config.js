@@ -68,7 +68,7 @@ export function sudo_command() {
         'printf \'#!/bin/sh\\nprintf "%%s\\\\n" "$FRAK_SUDO_PASS"\\n\' > "$FRAK_ASKPASS" || exit 1',
         'chmod 700 "$FRAK_ASKPASS" || exit 1',
         'export FRAK_SUDO_PASS SUDO_ASKPASS="$FRAK_ASKPASS"',
-        `sudo -A -p '' -k ${userArgs} --`,
+        `sudo -A -p '' -k ${userArgs} -- `,
     ].join('\n');
 }
 

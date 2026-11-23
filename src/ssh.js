@@ -1,7 +1,7 @@
 import child_process from 'node:child_process';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
-import config from './config.js';
+import config, { sudo_command } from './config.js';
 import debug from './debug.js';
 
 export const controlPath = `${process.env.HOME}/.ssh/control/frak-%C-${process.pid}`;
@@ -341,7 +341,6 @@ export function control() {
  * @param {{
  *     root: String,
  *     server: String,
- *     sudo_command: String,
  *     input: String,
  * }} [options={}]
  * @returns {Promise}
@@ -349,8 +348,7 @@ export function control() {
 export function exec(command, options = {}) {
     debug({ command, options });
 
-    const prefix = options.sudo_command ? `${options.sudo_command} ` : '';
-    const cmd = `set -e; cd ${quote(options.root || '.')}; ${prefix}sh -c ${quote(command)}`;
+    const cmd = `set -e; cd ${quote(options.root || '.')}; ${sudo_command()}sh -c ${quote(command)}`;
 
     return new Promise((resolve, reject) => {
         const ssh = child_process.spawn(
@@ -377,7 +375,7 @@ export function exec(command, options = {}) {
 
         // 2. Write the initial input without closing stdin. When sudo is used,
         //    this is the password consumed by sudo_command() on the remote end.
-        if (options.input !== undefined || options.sudo_command) {
+        if (options.input !== undefined || config.become) {
             const formattedInput = `${String(options.input || '').replace(/\r?\n$/, '')}\n`;
             ssh.stdin.write(formattedInput);
         }
@@ -417,15 +415,13 @@ export function exec(command, options = {}) {
  *     quiet: Boolean,
  *     root: String,
  *     server: String,
- *     sudo_command: string,
  * }} [options={}]
  * @returns {Promise & { stderr: Readable, stdout: Readable }}
  */
 export function spawn(command, options = {}) {
     debug({ command });
 
-    const prefix = options.sudo_command ? `${options.sudo_command} ` : '';
-    const cmd = `cd ${quote(options.root || '.')}; ${prefix}sh`;
+    const cmd = `cd ${quote(options.root || '.')}; ${sudo_command()}sh`;
 
     debug({ cmd });
 
@@ -443,7 +439,7 @@ export function spawn(command, options = {}) {
 
     // The first line is consumed by sudo_command(); the rest is the script
     // that the remote shell executes.
-    if (options.sudo_command) {
+    if (config.become) {
         ssh.stdin.write(`${String(options.password || '').replace(/\r?\n$/, '')}\n`);
     }
 
@@ -489,16 +485,14 @@ export function spawn(command, options = {}) {
  *     server: String,
  *     root: String,
  *     password: String,
- *     sudo_command: String,
  * }} [options={}]
  * @returns {Promise}
  */
 export function upload(destination, contents, options = {}) {
     debug({ destination, bytes: String(contents).length });
 
-    const prefix = options.sudo_command ? `${options.sudo_command} ` : '';
     const script = `mkdir -p ${quote(dirname(destination))} && cat > ${quote(destination)}`;
-    const cmd = `set -e; cd ${quote(options.root || '.')}; ${prefix}sh -c ${quote(script)}`;
+    const cmd = `set -e; cd ${quote(options.root || '.')}; ${sudo_command()}sh -c ${quote(script)}`;
 
     return new Promise((resolve, reject) => {
         const ssh = child_process.spawn(
@@ -525,7 +519,7 @@ export function upload(destination, contents, options = {}) {
             }
         });
 
-        if (options.sudo_command) {
+        if (config.become) {
             ssh.stdin.write(`${String(options.password || '').replace(/\r?\n$/, '')}\n`);
         }
 
