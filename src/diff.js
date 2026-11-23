@@ -95,26 +95,26 @@ export default async function diff(dryRunOutput, options) {
                 header.push(`new file mode ${mode.toString(8)}`);
                 header.push('index 0000000..0000000');
 
-                diff = `diff -Naurp --label=/dev/null --label="b/${fileEscaped}" /dev/null <(tar xzOf $tarball "${fileEscaped}" || cat /dev/null)`;
+                diff = `f2=$(mktemp); { tar xzOf $tarball "${fileEscaped}" || cat /dev/null; } > "$f2"; diff -Naurp --label=/dev/null --label="b/${fileEscaped}" /dev/null "$f2"; rm "$f2"`;
             } else if (action.match(/^cL\++/)) {
                 const target = change[2];
 
                 header.push('new file mode 120000');
                 header.push('index 0000000..0000000');
 
-                diff = `diff -Naurp --label=/dev/null --label="b/${fileEscaped}" /dev/null <(printf %s "${target}")`;
+                diff = `f2=$(mktemp); printf %s "${target}" > "$f2"; diff -Naurp --label=/dev/null --label="b/${fileEscaped}" /dev/null "$f2"; rm "$f2"`;
             } else if (action.match(/^cL.+/)) {
                 const target = change[2];
 
                 header.push('index 0000000..0000000');
 
-                diff = `diff -Naurp --label="a/${fileEscaped}" --label="b/${fileEscaped}" <(printf %s "$(readlink "${fileEscaped}")") <(printf %s "${target}")`;
+                diff = `f1=$(mktemp); f2=$(mktemp); printf %s "$(readlink "${fileEscaped}")" > "$f1"; printf %s "${target}" > "$f2"; diff -Naurp --label="a/${fileEscaped}" --label="b/${fileEscaped}" "$f1" "$f2"; rm "$f1" "$f2"`;
             } else {
                 const { mode } = statSync(file);
 
                 header.push(`index 0000000..0000000  ${mode.toString(8)}`);
 
-                diff = `diff -Naurp --label="a/${fileEscaped}" --label="b/${fileEscaped}" "${fileEscaped}" <(tar xzOf $tarball "${fileEscaped}" || cat /dev/null)`;
+                diff = `f2=$(mktemp); { tar xzOf $tarball "${fileEscaped}" || cat /dev/null; } > "$f2"; diff -Naurp --label="a/${fileEscaped}" --label="b/${fileEscaped}" "${fileEscaped}" "$f2"; rm "$f2"`;
             }
 
             return `printf "%s\\n" '${header.join('\n')}'; ${diff}`;
@@ -125,7 +125,7 @@ export default async function diff(dryRunOutput, options) {
 
         const diffsScriptFilename = `.frak-diffs-${crypto.sha256(Date.now())}.sh`;
 
-        writeFileSync(`/tmp/${diffsScriptFilename}`, diffs.join(';'));
+        writeFileSync(`/tmp/${diffsScriptFilename}`, `#!/bin/sh\n${diffs.join(';')}`);
 
         // Tarball the local files up to the server
         const tar = spawn('tar', ['cz', ...files, `/tmp/${diffsScriptFilename}`]);
@@ -243,7 +243,9 @@ export default async function diff(dryRunOutput, options) {
             /* node:coverage enable */
         }
     } else if (options.interactive) {
-        console.log(ansi.yellow('No changes detected.'));
+        console.log(
+            options.colorize ? ansi.yellow('No changes detected.') : 'No changes detected.'
+        );
     }
 
     return '';

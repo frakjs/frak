@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 
-import { execSync, spawn } from 'node:child_process';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -10,13 +9,22 @@ import config, { load as loadConfig } from '../src/config.js';
 import { sha256 } from '../src/crypto.js';
 import debug from '../src/debug.js';
 import diff from '../src/diff.js';
-import humanize from '../src/humanize.js';
 import * as rsync from '../src/rsync.js';
 import * as ssh from '../src/ssh.js';
 import * as date from '../src/date.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+const STATUS_SUCCESS = 0b00000000;
+const ERROR_CANCELED = 0b00000001;
+const ERROR_CONFIG = 0b00000010;
+const ERROR_CONTROL = 0b00000100;
+const ERROR_DIFF = 0b00001000;
+const ERROR_RSYNC = 0b00010000;
+const ERROR_PATCH = 0b00100000;
+const ERROR_USAGE = 0b01000000;
+const ERROR_DRY_RUN = 0b10000000;
 
 /**
  * Try to load config. If it fails, print error message in red.
@@ -27,7 +35,42 @@ async function tryLoadConfig(env) {
     return await loadConfig(env).catch((e) => {
         console.error(ansi.red(e.message));
 
-        process.exit(1);
+        process.exit(ERROR_CONFIG);
+    });
+}
+
+/**
+ * Establish a control socket for the server. Exits if there's an error.
+ *
+ * @param {Boolean} strict
+ * @returns {Promise<{
+ *     close: Promise,
+ *     stdin: Stream.Writable,
+ *     stdout: Stream.Readable,
+ *     stderr: Stream.Readable
+ * }>}
+ */
+function establishControl(strict = true) {
+    let stderr = '';
+    let stdout = '';
+    const control = ssh.control();
+
+    control.stdout.on('data', (data) => (stdout += data));
+    control.stderr.on('data', (data) => (stderr += data));
+
+    return control.catch((error) => {
+        debug(error);
+        console.error(ansi.red(error.message || error));
+
+        if (stdout) {
+            console.log(stdout);
+        }
+
+        if (stderr) {
+            console.error(stderr);
+        }
+
+        strict && process.exit(ERROR_CONTROL);
     });
 }
 
@@ -65,6 +108,7 @@ function version() {
  */
 async function main(args) {
     const { command, options } = cli.parse(args.slice(2));
+    let control;
 
     debug('parsed:', { command, options });
 
@@ -88,14 +132,14 @@ async function main(args) {
 
         if (!config.server) {
             console.error('No remote server configured. Add "server" to frak.config.js');
-            process.exit(1);
+            process.exit(ERROR_CONFIG);
         }
 
         try {
-            const cmd = options.command || '\\$SHELL -l -i';
-
-            execSync(`ssh -t ${config.server} -- cd ${config.root} \\&\\& ${cmd}`, {
-                stdio: 'inherit',
+            await ssh.exec(options.command ? options.command : '$SHELL -i || /bin/sh', {
+                server: config.server,
+                root: config.root,
+                input: config.password,
             });
         } catch (e) {
             debug(e);
@@ -106,8 +150,11 @@ async function main(args) {
         // Show the differences between local files and remote server
         await tryLoadConfig(options.env);
 
+        // Establish ssh control master
+        control = await establishControl();
+
         try {
-            const { output } = await rsync.exec('--dry-run');
+            const { output } = await rsync.exec({ options: ['--dry-run'] });
 
             debug({ output });
 
@@ -123,32 +170,35 @@ async function main(args) {
 
         let output;
 
-        try {
-            // Execute dry-run
-            const result = await rsync.exec('--dry-run');
+        // Establish ssh control master
+        control = await establishControl();
 
-            output = result.output;
-        } catch (e) {
-            console.log(e);
+        // Execute dry-run
+        const result = await rsync.exec({ humanize: true, options: ['--dry-run'] }).catch((e) => {
+            console.error(ansi.red(e.message || e));
 
-            process.exit(1);
-        }
+            process.exit(ERROR_DRY_RUN);
+        });
+
+        output = result.output;
+
+        console.log('');
 
         debug({ output });
-
-        console.log(humanize(output));
 
         if (command === 'push' && config.after) {
             console.log(ansi.blue('Run command:'), config.after);
             console.log('');
         }
 
-        const proceed = await cli.agree(
-            ansi.yellow('The above actions will be taken. Continue? (This cannot be undone): ')
-        );
+        const proceed = await cli
+            .agree(
+                ansi.yellow('The above actions will be taken. Continue? (This cannot be undone): ')
+            )
+            .catch(console.error);
 
         if (!proceed) {
-            process.exit(1);
+            process.exit(ERROR_CANCELED);
         }
 
         // Prepare patch file
@@ -158,45 +208,74 @@ async function main(args) {
             patch = await diff(output, { interactive: false })
                 /* node:coverage disable */
                 .catch((e) => {
-                    console.error(e);
+                    console.error(e.message || e);
 
-                    process.exit(1);
+                    process.exit(ERROR_DIFF);
                 });
             /* node:coverage enable */
         }
 
-        // Execute actual rsync command
-        const { backupPath, output: actualOutput } = await rsync.exec();
-
         console.log('');
-        console.log(humanize(actualOutput));
+
+        // Execute actual rsync command
+        const { backupPath, output: actualOutput } = await rsync
+            .exec({ humanize: true })
+            .catch((e) => {
+                console.error(ansi.red(e.message || e));
+
+                process.exit(ERROR_RSYNC);
+            });
+
+        if (actualOutput.trim()) {
+            console.log('');
+        }
 
         // Place patch file in backup dir
         if (command === 'push') {
             const hash = sha256(patch).slice(0, 7);
-            const copy = spawn('ssh', [
-                config.server,
-                '--',
-                `cat > '${config.root || '.'}/${backupPath}/${hash}.patch'`,
-            ]);
 
-            copy.stdout.on('data', (data) => debug('' + data));
-            copy.stderr.on('data', (data) => debug('' + data));
-            copy.stdin.write(patch);
+            await ssh
+                .upload(`${backupPath}/${hash}.patch`, patch, {
+                    server: config.server,
+                    root: config.root,
+                    password: config.password,
+                })
+                .catch((e) => {
+                    console.error(ansi.red(e.message || e));
+
+                    process.exit(ERROR_PATCH);
+                });
         }
 
         // Execute "after" command
         if (command === 'push' && config.after) {
-            console.log(ansi.yellow('Executing commands on remote server.'));
+            if (config.become === true) {
+                console.log(
+                    ansi.blue(`Executing commands on remote server as ${ansi.red('root')}.`)
+                );
+            } else if (config.become) {
+                console.log(
+                    ansi.blue(
+                        `Executing commands on remote server as ${ansi.yellow(config.become)}.`
+                    )
+                );
+            } else {
+                console.log(ansi.yellow(`Executing commands on remote server.`));
+            }
+
+            console.log('');
 
             debug({ command: config.after });
 
             await ssh
-                .exec(config.after, {
+                .spawn(config.after, {
                     server: config.server,
                     root: config.root,
+                    password: config.password,
                 })
-                .catch(debug);
+                .catch((e) => console.error(e.message || e));
+
+            console.log('');
         }
 
         // TODO Webhook
@@ -207,16 +286,24 @@ async function main(args) {
     } else if (command === 'backups:list') {
         await tryLoadConfig(options.env);
 
+        // Establish ssh control master
+        control = await establishControl();
+
         const delimeter = '------Separator--';
         const grep = {
-            additions: `grep -e '^+' "$NAME"/*.patch | grep -v '^+++' | wc -l`,
-            deletions: `grep -e '^-' "$NAME"/*.patch | grep -v '^---' | wc -l`,
+            additions: `[ -f "$NAME"/*.patch ] && grep -e '^+' "$NAME"/*.patch || cat /dev/null | grep -v '^+++' | wc -l`,
+            deletions: `[ -f "$NAME"/*.patch ] && grep -e '^-' "$NAME"/*.patch || cat /dev/null | grep -v '^---' | wc -l`,
         };
         const ls = `stat -c '%Y %n' .backups/* | sort -r`;
 
-        const list = ssh.exec(
+        const list = ssh.spawn(
             `${ls} | xargs -I {} sh -c 'TIMESTAMP=$(echo {} | cut -d" " -f1); NAME=$(echo {} | cut -d" " -f2-); echo $TIMESTAMP${delimeter}$NAME${delimeter}$(${grep.additions})${delimeter}$(${grep.deletions})'`,
-            { quiet: true, server: config.server, root: config.root }
+            {
+                quiet: true,
+                server: config.server,
+                root: config.root,
+                password: config.password,
+            }
         );
         let backups = '';
 
@@ -261,11 +348,17 @@ async function main(args) {
         usage();
 
         if (command !== '--help') {
-            process.exit(1);
+            process.exit(ERROR_USAGE);
         }
     }
 
-    process.exit(0);
+    if (control) {
+        debug('closing control socket');
+
+        await control.close().catch((error) => console.error(ansi.red(error.message || error)));
+    }
+
+    process.exit(STATUS_SUCCESS);
 }
 
 main(process.argv);

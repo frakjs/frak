@@ -57,11 +57,82 @@ export async function agree(string, { stdin = null, stdout = null } = {}) {
 
     stdout.write(string);
 
+    stdin.resume();
+
     const answer = await new Promise((resolve) => {
-        stdin.on('data', (data) => resolve(data));
-    });
+        stdin.once('data', (data) => {
+            resolve(data);
+        });
+    }).catch(console.error);
 
     return ['y', 'yes'].includes(`${answer}`.trim().toLowerCase());
+}
+
+/**
+ * Prompt the user, but don't echo as they type.
+ *
+ * @param {String} prompt
+ * @param {Object} [options={}]
+ * @param {import('node:stream').Readable} [options.stdin]
+ * @param {import('node:stream').Writable} [options.stdout]
+ */
+export async function password(prompt, { stdin = null, stdout = null } = {}) {
+    stdout = stdout || process.stdout;
+    stdin = stdin || process.stdin;
+
+    stdout.write(prompt);
+
+    stdin.setRawMode(true);
+    stdin.resume();
+    stdin.setEncoding('utf8');
+
+    return await new Promise((resolve) => {
+        let password = '';
+
+        const handler = (data) => {
+            // A single chunk can contain several characters (fast typing,
+            // paste, terminal multiplexers), so process it character by
+            // character instead of comparing the whole chunk to Enter.
+            for (let i = 0; i < data.length; i++) {
+                const char = data[i];
+
+                if (char === '\u000d' || char === '\u000a') {
+                    cleanup();
+                    stdout.write('\n');
+                    resolve(password);
+
+                    return;
+                }
+
+                // Handle Ctrl+C (Interrupt)
+                if (char === '\u0003') {
+                    cleanup();
+                    stdout.write('\n');
+                    process.exit(130);
+                }
+
+                // Handle Backspace (\u007f or \u0008)
+                if (char === '\u007f' || char === '\u0008') {
+                    if (password.length > 0) {
+                        password = password.slice(0, -1);
+                    }
+
+                    continue;
+                }
+
+                // Append standard printable characters
+                password += char;
+            }
+        };
+
+        const cleanup = () => {
+            stdin.removeListener('data', handler);
+            stdin.setRawMode(false);
+            stdin.pause();
+        };
+
+        stdin.on('data', handler);
+    });
 }
 
 /**

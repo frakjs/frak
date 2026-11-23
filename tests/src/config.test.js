@@ -30,6 +30,33 @@ suite('src/config.js', () => {
         assert.equal(located, null);
     });
 
+    suite('sudo_command()', () => {
+        /**
+         * No sudo prefix is needed without become.
+         */
+        test('is empty without become', () => {
+            assert.equal(config.sudo_command(), '');
+        });
+
+        /**
+         * A string become value is used as the sudo target user.
+         */
+        test('runs the following command as a specific user', () => {
+            config.default.become = 'www-data';
+
+            assert.match(config.sudo_command(), /sudo -A -p '' -k -u www-data --/);
+        });
+
+        /**
+         * Reject usernames that could inject shell syntax.
+         */
+        test('rejects an invalid become user', () => {
+            config.default.become = 'www-data; rm -rf /';
+
+            assert.throws(() => config.sudo_command(), /Invalid become user/);
+        });
+    });
+
     suite('legacy project', () => {
         const originalDirectory = process.cwd();
 
